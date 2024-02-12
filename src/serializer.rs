@@ -87,6 +87,7 @@ impl<'a> serde::ser::Serializer for &'a mut CustomSerializer {
 
     /// 'a'
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
+        // char is guaranteed to have the same size, alignment, and function call ABI as u32 on all platforms.
         self.serialize_u32(u32::from(v))
     }
 
