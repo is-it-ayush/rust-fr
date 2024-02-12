@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-mod serializer;
 mod error;
+mod serializer;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Person {
@@ -10,5 +10,11 @@ struct Person {
 }
 
 fn main() {
-    println!("Hello, world!");
+    let person = Person {
+        name: "Alice".to_string(),
+        age: 30,
+    };
+    let bytes = serializer::to_bytes(&person).unwrap();
+    let x = String::from_utf8(bytes).unwrap();
+    println!("{}", x);
 }
