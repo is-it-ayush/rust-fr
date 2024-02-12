@@ -15,6 +15,5 @@ fn main() {
         age: 30,
     };
     let bytes = serializer::to_bytes(&person).unwrap();
-    let x = String::from_utf8(bytes).unwrap();
-    println!("{}", x);
+    println!("{:?}", bytes);
 }
