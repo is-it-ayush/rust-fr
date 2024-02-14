@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 mod error;
 mod serializer;
+mod deserializer;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Person {
