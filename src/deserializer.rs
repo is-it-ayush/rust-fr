@@ -34,7 +34,7 @@ where
 impl<'de> CustomDeserializer<'de> {
     /// Returns the next byte in the input without consuming it.
     pub fn peek_byte(&self) -> Result<u8, CustomError> {
-        self.input.first().map(|&v| v).ok_or(CustomError::EOF)
+        self.input.first().copied().ok_or(CustomError::EOF)
     }
 
     /// Returns the next `length` bytes in the input without consuming them.
@@ -111,7 +111,7 @@ impl<'de> CustomDeserializer<'de> {
                 .try_into()
                 .map_err(|_| CustomError::ConversionError)
             }
-            _ => return Err(CustomError::InvalidTypeSize),
+            _ => Err(CustomError::InvalidTypeSize),
         }
     }
 
@@ -151,7 +151,7 @@ impl<'de> CustomDeserializer<'de> {
                 .try_into()
                 .map_err(|_| CustomError::ConversionError)
             }
-            _ => return Err(CustomError::InvalidTypeSize),
+            _ => Err(CustomError::InvalidTypeSize),
         }
     }
 
@@ -335,7 +335,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
 
     fn deserialize_unit_struct<V>(
         self,
-        name: &'static str,
+        _name: &'static str,
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where
@@ -346,7 +346,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
 
     fn deserialize_newtype_struct<V>(
         self,
-        name: &'static str,
+        _name: &'static str,
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where
@@ -371,7 +371,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
         }
     }
 
-    fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_tuple<V>(self, _len: usize, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
@@ -380,8 +380,8 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
 
     fn deserialize_tuple_struct<V>(
         self,
-        name: &'static str,
-        len: usize,
+        _name: &'static str,
+        _len: usize,
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where
@@ -409,8 +409,8 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
 
     fn deserialize_struct<V>(
         self,
-        name: &'static str,
-        fields: &'static [&'static str],
+        _name: &'static str,
+        _fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where
@@ -421,8 +421,8 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
 
     fn deserialize_enum<V>(
         self,
-        name: &'static str,
-        variants: &'static [&'static str],
+        _name: &'static str,
+        _variants: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where
@@ -450,7 +450,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
         self.deserialize_str(visitor)
     }
 
-    fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_ignored_any<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
@@ -575,7 +575,7 @@ impl<'de, 'a> VariantAccess<'de> for EnumVistor<'a, 'de> {
         seed.deserialize(&mut *self.deserializer)
     }
 
-    fn tuple_variant<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
+    fn tuple_variant<V>(self, _len: usize, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
     {
@@ -584,7 +584,7 @@ impl<'de, 'a> VariantAccess<'de> for EnumVistor<'a, 'de> {
 
     fn struct_variant<V>(
         self,
-        fields: &'static [&'static str],
+        _fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where

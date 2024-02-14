@@ -17,7 +17,7 @@ fn main() {
         name: "Ayush".to_string(),
         age: 19,
         is_human: true,
-        languages: vec!["Rust", "TypeScript", "C"]
+        languages: ["Rust", "TypeScript", "C"]
             .iter()
             .map(|s| s.to_string())
             .collect::<Vec<String>>(),
