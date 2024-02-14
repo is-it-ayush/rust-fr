@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
+mod deserializer;
 mod error;
 mod serializer;
-mod deserializer;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Person {
@@ -23,27 +23,27 @@ fn main() {
             .collect::<Vec<String>>(),
     };
 
-    println!("Data: {:?}", person);
+    println!("Original Data: {:?}\n", person);
 
     let bytes = serializer::to_bytes(&person).unwrap();
-    println!("Unsiged Bytes: {:?}", bytes);
+    println!("Serialized Data: {:?}\n", bytes);
 
     let deserialized_person = deserializer::from_bytes::<Person>(&bytes).unwrap();
-    println!("Deserialized Data: {:?}", deserialized_person);
+    println!("Deserialized Data: {:?}\n", deserialized_person);
 
-   // let binary: String = bytes
-   //     .iter()
-   //     .map(|&i| format!("{:08b}", i))
-   //     .collect::<Vec<String>>()
-   //     .join(" ");
+    // let binary: String = bytes
+    //     .iter()
+    //     .map(|&i| format!("{:08b}", i))
+    //     .collect::<Vec<String>>()
+    //     .join(" ");
 
-   // println!("Binary Stream: {}", binary);
+    // println!("Binary Stream: {}", binary);
 
-   // let hex: String = bytes
-   //     .iter()
-   //     .map(|&i| format!("{:02x}", i))
-   //     .collect::<Vec<String>>()
-   //     .join(" ");
+    // let hex: String = bytes
+    //     .iter()
+    //     .map(|&i| format!("{:02x}", i))
+    //     .collect::<Vec<String>>()
+    //     .join(" ");
 
-   // println!("Hex Stream: {}", hex);
+    // println!("Hex Stream: {}", hex);
 }
