@@ -28,19 +28,22 @@ fn main() {
     let bytes = serializer::to_bytes(&person).unwrap();
     println!("Unsiged Bytes: {:?}", bytes);
 
-    let binary: String = bytes
-        .iter()
-        .map(|&i| format!("{:08b}", i))
-        .collect::<Vec<String>>()
-        .join(" ");
+    let deserialized_person = deserializer::from_bytes::<Person>(&bytes).unwrap();
+    println!("Deserialized Data: {:?}", deserialized_person);
 
-    println!("Binary Stream: {}", binary);
+   // let binary: String = bytes
+   //     .iter()
+   //     .map(|&i| format!("{:08b}", i))
+   //     .collect::<Vec<String>>()
+   //     .join(" ");
 
-    let hex: String = bytes
-        .iter()
-        .map(|&i| format!("{:02x}", i))
-        .collect::<Vec<String>>()
-        .join(" ");
+   // println!("Binary Stream: {}", binary);
 
-    println!("Hex Stream: {}", hex);
+   // let hex: String = bytes
+   //     .iter()
+   //     .map(|&i| format!("{:02x}", i))
+   //     .collect::<Vec<String>>()
+   //     .join(" ");
+
+   // println!("Hex Stream: {}", hex);
 }

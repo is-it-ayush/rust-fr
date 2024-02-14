@@ -23,7 +23,7 @@ where
 
 impl CustomSerializer {
     pub fn peek_last(&self, length: usize) -> Result<&[u8], CustomError> {
-        match self.output.len() > length {
+        match self.output.len() >= length {
             true => {
                 let last_bytes = self.output.get(self.output.len() - length..).ok_or(
                     CustomError::UnexpectedNone(
