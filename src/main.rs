@@ -20,7 +20,6 @@ struct Person {
 
 fn main() {
     let person = Person {
-
         name: "Ayush".to_string(),
     };
 
