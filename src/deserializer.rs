@@ -1,6 +1,6 @@
 use crate::{
     error::CustomError,
-    serializer::{BELL, DAGGER, DOUBLE_DAGGER, NULL, PIPE},
+    serializer::{BELL, DAGGER, DELETE, DOUBLE_DAGGER, NULL, PIPE, TILDE},
 };
 use serde::{
     de::{
@@ -34,14 +34,6 @@ where
 impl<'de> CustomDeserializer<'de> {
     /// Returns the next byte in the input without consuming it.
     pub fn peek_byte(&self) -> Result<u8, CustomError> {
-        println!(
-            "peek: {}",
-            self.input
-                .iter()
-                .map(|&i| format!("{:02x}", i))
-                .collect::<Vec<String>>()
-                .join(" ")
-        );
         self.input.first().copied().ok_or(CustomError::EOF)
     }
 
@@ -184,16 +176,27 @@ impl<'de> CustomDeserializer<'de> {
     }
 
     /// Parses a str value from the input.
-    pub fn parse_str(&mut self) -> Result<&'de str, CustomError> {
-        let length = self.parse_unsigned::<u64>()? as usize;
-        let bytes = self.next_bytes(length)?;
-        std::str::from_utf8(bytes).map_err(|_| CustomError::ConversionError)
+    pub fn parse_string(&mut self, bytes: &mut Vec<u8>) -> Result<String, CustomError> {
+        loop {
+            let next_byte = self.next_byte()?;
+            if next_byte == TILDE {
+                break;
+            }
+            bytes.push(next_byte);
+        }
+        String::from_utf8(bytes.clone()).map_err(|_| CustomError::ConversionError)
     }
 
     /// Parses bytes from the input.
-    pub fn parse_bytes(&mut self) -> Result<&'de [u8], CustomError> {
-        let length = self.parse_unsigned::<u64>()? as usize;
-        self.next_bytes(length)
+    pub fn parse_bytes(&mut self, bytes: &mut Vec<u8>) -> Result<Vec<u8>, CustomError> {
+        loop {
+            let next_byte = self.next_byte()?;
+            if next_byte == DELETE {
+                break;
+            }
+            bytes.push(next_byte);
+        }
+        Ok(bytes.clone())
     }
 }
 
@@ -297,28 +300,46 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        visitor.visit_str(self.parse_str()?)
+        match self.next_byte()? {
+            TILDE => {
+                let mut bytes = Vec::<u8>::new();
+                visitor.visit_str(self.parse_string(&mut bytes)?.as_str())
+            }
+            _ => Err(CustomError::ExpectedTilde),
+        }
     }
 
     fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
-        visitor.visit_string(self.parse_str()?.to_string())
+        self.deserialize_str(visitor)
     }
 
     fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
-        visitor.visit_bytes(self.parse_bytes()?)
+        match self.next_byte()? {
+            TILDE => {
+                let mut bytes = Vec::<u8>::new();
+                visitor.visit_bytes(self.parse_bytes(&mut bytes)?.as_slice())
+            }
+            _ => Err(CustomError::ExpectedTilde),
+        }
     }
 
     fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
-        visitor.visit_byte_buf(self.parse_bytes()?.to_vec())
+        match self.next_byte()? {
+            TILDE => {
+                let mut bytes = Vec::<u8>::new();
+                visitor.visit_byte_buf(self.parse_bytes(&mut bytes)?)
+            }
+            _ => Err(CustomError::ExpectedTilde),
+        }
     }
 
     fn deserialize_option<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -367,14 +388,11 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        println!("calling_seq");
         match self.parse_unsigned::<u8>()? {
             DOUBLE_DAGGER => {
-                println!("visiting_seq");
                 let value = visitor.visit_seq(SequenceVistor::new(self))?;
                 match self.peek_byte()? {
                     DOUBLE_DAGGER => {
-                        println!("unvisiting_seq");
                         self.next_byte()?;
                         Ok(value)
                     }
@@ -409,14 +427,11 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        println!("calling_map");
         match self.parse_unsigned::<u8>()? {
             BELL => {
-                println!("visiting_map");
                 let value = visitor.visit_map(MapVisitor::new(self))?;
                 match self.peek_byte()? {
                     BELL => {
-                        println!("unvisiting_map");
                         self.next_byte()?;
                         Ok(value)
                     }
@@ -505,15 +520,6 @@ impl<'de, 'a> SeqAccess<'de> for SequenceVistor<'a, 'de> {
     where
         T: serde::de::DeserializeSeed<'de>,
     {
-        println!(
-            "seq: {}",
-            self.deserializer
-                .input
-                .iter()
-                .map(|&i| format!("{:02x}", i))
-                .collect::<Vec<String>>()
-                .join(" ")
-        );
         // ascii
         if self.deserializer.peek_byte()? == DOUBLE_DAGGER {
             return Ok(None);
@@ -550,10 +556,8 @@ impl<'de, 'a> MapAccess<'de> for MapVisitor<'a, 'de> {
     where
         K: DeserializeSeed<'de>,
     {
-        println!("visiting_map_key");
         // since the seperate betwen
         if self.deserializer.peek_byte()? == BELL {
-            println!("map_peek_end");
             return Ok(None);
         }
         // not first and not dagger; throw
@@ -568,7 +572,6 @@ impl<'de, 'a> MapAccess<'de> for MapVisitor<'a, 'de> {
     where
         V: DeserializeSeed<'de>,
     {
-        println!("visiting_map_value");
         if self.deserializer.parse_unsigned::<u8>()? != PIPE {
             return Err(CustomError::ExpectedPipe);
         }

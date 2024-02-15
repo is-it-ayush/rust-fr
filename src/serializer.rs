@@ -4,6 +4,8 @@ use serde::{Serialize, Serializer};
 
 use crate::error::CustomError;
 
+pub const DELETE: u8 = 0x7F;
+pub const TILDE: u8 = 0x7E;
 pub const NULL: u8 = 0x0C;
 pub const BELL: u8 = 0x07;
 pub const DAGGER: u8 = 0x2D;
@@ -116,17 +118,17 @@ impl<'a> serde::ser::Serializer for &'a mut CustomSerializer {
 
     /// "Hello, World!"
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        let length = v.len() as u64;
-        self.serialize_u64(length)?;
+        self.serialize_u8(TILDE)?;
         self.output.extend(v.as_bytes());
+        self.serialize_u8(TILDE)?;
         Ok(())
     }
 
     /// [u8]
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
-        let length = v.len() as u64;
-        self.serialize_u64(length)?;
+        self.serialize_u8(DELETE)?;
         self.output.extend(v);
+        self.serialize_u8(DELETE)?;
         Ok(())
     }
 

@@ -23,6 +23,9 @@ pub enum CustomError {
     #[error("type conversion error")]
     ConversionError,
 
+    #[error("expected tilde value, found non-tilde value")]
+    ExpectedTilde,
+
     #[error("expected null value, found non-null value")]
     ExpectedNull,
 
