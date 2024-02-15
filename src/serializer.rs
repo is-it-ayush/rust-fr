@@ -1,11 +1,13 @@
+use std::u8;
+
 use serde::{Serialize, Serializer};
 
 use crate::error::CustomError;
 
-pub const NULL: u32 = 0x00;
-pub const DAGGER: u32 = 0x86;
-pub const DOUBLE_DAGGER: u32 = 0x87;
-pub const PIPE: u32 = 0xA6;
+pub const NULL: u8 = 0x00;
+pub const DAGGER: u8 = 0x86;
+pub const DOUBLE_DAGGER: u8 = 0x87;
+pub const PIPE: u8 = 0xA6;
 
 #[derive(Debug)]
 struct CustomSerializer {
@@ -26,9 +28,10 @@ impl CustomSerializer {
         match self.output.len() >= length {
             true => {
                 let last_bytes = self.output.get(self.output.len() - length..).ok_or(
-                    CustomError::UnexpectedNone(
-                        "attempted to get last 4 bytes but failed".to_string(),
-                    ),
+                    CustomError::UnexpectedNone(format!(
+                        "attempted to get last {} bytes but failed",
+                        length
+                    )),
                 )?;
                 Ok(last_bytes)
             }
@@ -141,7 +144,7 @@ impl<'a> serde::ser::Serializer for &'a mut CustomSerializer {
 
     /// ()
     fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u32(NULL)
+        self.serialize_u8(NULL)
     }
 
     /// struct Unit or PhantomData<T>
@@ -168,7 +171,7 @@ impl<'a> serde::ser::Serializer for &'a mut CustomSerializer {
         variant_index: u32,
         _variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u32(DAGGER)?;
+        self.serialize_u8(DAGGER)?;
         self.serialize_u32(variant_index)
     }
 
@@ -183,16 +186,16 @@ impl<'a> serde::ser::Serializer for &'a mut CustomSerializer {
     where
         T: Serialize,
     {
-        self.serialize_u32(DOUBLE_DAGGER)?;
+        self.serialize_u8(DOUBLE_DAGGER)?;
         self.serialize_u32(variant_index)?;
         value.serialize(&mut *self)?;
-        self.serialize_u32(DOUBLE_DAGGER)?;
+        self.serialize_u8(DOUBLE_DAGGER)?;
         Ok(())
     }
 
     /// Vec<T> or HashSet<T>
     fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
-        self.serialize_u32(DOUBLE_DAGGER)?;
+        self.serialize_u8(DOUBLE_DAGGER)?;
         Ok(self)
     }
 
@@ -218,14 +221,14 @@ impl<'a> serde::ser::Serializer for &'a mut CustomSerializer {
         _variant: &'static str,
         _len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        self.serialize_u32(DOUBLE_DAGGER)?;
+        self.serialize_u8(DOUBLE_DAGGER)?;
         self.serialize_u32(variant_index)?;
         Ok(self)
     }
 
     /// BTreeMap<K, V>
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        self.serialize_u32(DOUBLE_DAGGER)?;
+        self.serialize_u8(DOUBLE_DAGGER)?;
         Ok(self)
     }
 
@@ -261,14 +264,14 @@ impl<'a> serde::ser::SerializeSeq for &'a mut CustomSerializer {
     {
         // If the last 4 bytes are not DOUBLE_DAGGER, then add DAGGER.
         // This simply means "don't add DAGGER at the start".
-        if self.peek_last(4)? != DOUBLE_DAGGER.to_le_bytes() {
-            self.serialize_u32(DAGGER)?;
+        if self.peek_last(1)? != DOUBLE_DAGGER.to_le_bytes() {
+            self.serialize_u8(DAGGER)?;
         }
         value.serialize(&mut **self)
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u32(DOUBLE_DAGGER)?;
+        self.serialize_u8(DOUBLE_DAGGER)?;
         Ok(())
     }
 }
@@ -282,13 +285,13 @@ impl<'a> serde::ser::SerializeTuple for &'a mut CustomSerializer {
         T: Serialize,
     {
         if self.peek_last(4)? != DOUBLE_DAGGER.to_le_bytes() {
-            self.serialize_u32(DAGGER)?;
+            self.serialize_u8(DAGGER)?;
         }
         value.serialize(&mut **self)
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u32(DOUBLE_DAGGER)?;
+        self.serialize_u8(DOUBLE_DAGGER)?;
         Ok(())
     }
 }
@@ -302,13 +305,13 @@ impl<'a> serde::ser::SerializeTupleStruct for &'a mut CustomSerializer {
         T: Serialize,
     {
         if self.peek_last(4)? != DOUBLE_DAGGER.to_le_bytes() {
-            self.serialize_u32(DAGGER)?;
+            self.serialize_u8(DAGGER)?;
         }
         value.serialize(&mut **self)
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u32(DOUBLE_DAGGER)?;
+        self.serialize_u8(DOUBLE_DAGGER)?;
         Ok(())
     }
 }
@@ -322,19 +325,15 @@ impl<'a> serde::ser::SerializeTupleVariant for &'a mut CustomSerializer {
         T: Serialize,
     {
         // we know the last 8 bytes are the the dagger and the variant index
-        let last_second_word = u32::from_le_bytes(
-            self.peek_last(8)?[0..4]
-                .try_into()
-                .map_err(|_| CustomError::InvalidTypeSize)?,
-        );
-        if last_second_word != DOUBLE_DAGGER {
-            self.serialize_u32(DAGGER)?;
+        let last_seperator = self.peek_last(5)?[0];
+        if last_seperator != DOUBLE_DAGGER {
+            self.serialize_u8(DAGGER)?;
         }
         value.serialize(&mut **self)
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u32(DOUBLE_DAGGER)?;
+        self.serialize_u8(DOUBLE_DAGGER)?;
         todo!()
     }
 }
@@ -348,11 +347,11 @@ impl<'a> serde::ser::SerializeMap for &'a mut CustomSerializer {
     where
         T: Serialize,
     {
-        if self.peek_last(4)? != DOUBLE_DAGGER.to_le_bytes() {
-            self.serialize_u32(DAGGER)?;
+        if self.peek_last(1)? != DOUBLE_DAGGER.to_le_bytes() {
+            self.serialize_u8(DAGGER)?;
         }
         key.serialize(&mut **self)?;
-        self.serialize_u32(PIPE)
+        self.serialize_u8(PIPE)
     }
 
     fn serialize_value<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
@@ -363,7 +362,7 @@ impl<'a> serde::ser::SerializeMap for &'a mut CustomSerializer {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u32(DOUBLE_DAGGER)?;
+        self.serialize_u8(DOUBLE_DAGGER)?;
         Ok(())
     }
 }
@@ -380,16 +379,16 @@ impl<'a> serde::ser::SerializeStruct for &'a mut CustomSerializer {
     where
         T: Serialize,
     {
-        if self.peek_last(4)? != DOUBLE_DAGGER.to_le_bytes() {
-            self.serialize_u32(DAGGER)?;
+        if self.peek_last(1)? != DOUBLE_DAGGER.to_le_bytes() {
+            self.serialize_u8(DAGGER)?;
         }
         key.serialize(&mut **self)?;
-        self.serialize_u32(PIPE)?;
+        self.serialize_u8(PIPE)?;
         value.serialize(&mut **self)
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u32(DOUBLE_DAGGER)?;
+        self.serialize_u8(DOUBLE_DAGGER)?;
         Ok(())
     }
 }
@@ -406,11 +405,16 @@ impl<'a> serde::ser::SerializeStructVariant for &'a mut CustomSerializer {
     where
         T: Serialize,
     {
+        if self.peek_last(1)? != DOUBLE_DAGGER.to_le_bytes() {
+            self.serialize_u8(DAGGER)?;
+        }
         key.serialize(&mut **self)?;
+        self.serialize_u8(PIPE)?;
         value.serialize(&mut **self)
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
+        self.serialize_u8(DOUBLE_DAGGER)?;
         Ok(())
     }
 }

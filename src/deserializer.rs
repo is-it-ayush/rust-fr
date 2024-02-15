@@ -317,7 +317,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        match self.parse_unsigned::<u32>()? {
+        match self.parse_unsigned::<u8>()? {
             NULL => visitor.visit_none(),
             _ => visitor.visit_some(self),
         }
@@ -327,7 +327,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        match self.parse_unsigned::<u32>()? {
+        match self.parse_unsigned::<u8>()? {
             NULL => visitor.visit_unit(),
             _ => Err(CustomError::ExpectedNull),
         }
@@ -359,10 +359,10 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        match self.parse_unsigned::<u32>()? {
+        match self.parse_unsigned::<u8>()? {
             DOUBLE_DAGGER => {
                 let value = visitor.visit_seq(SequenceVistor::new(self))?;
-                match self.peek_char()? {
+                match self.peek_byte()? {
                     DOUBLE_DAGGER => Ok(value),
                     _ => Err(CustomError::ExpectedSequenceEnd),
                 }
@@ -395,10 +395,10 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        match self.parse_unsigned::<u32>()? {
+        match self.parse_unsigned::<u8>()? {
             DOUBLE_DAGGER => {
                 let value = visitor.visit_map(MapVistor::new(self))?;
-                match self.peek_char()? {
+                match self.peek_byte()? {
                     DOUBLE_DAGGER => Ok(value),
                     _ => Err(CustomError::ExpectedMapEnd),
                 }
@@ -428,11 +428,11 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        match self.parse_signed::<u32>()? {
+        match self.parse_signed::<u8>()? {
             // newtype variant
             DOUBLE_DAGGER => {
                 let value = visitor.visit_enum(EnumVistor::new(self))?;
-                match self.peek_char()? {
+                match self.peek_byte()? {
                     DOUBLE_DAGGER => Ok(value),
                     _ => Err(CustomError::ExpectedEnum),
                 }
@@ -482,17 +482,20 @@ impl<'de, 'a> SeqAccess<'de> for SequenceVistor<'a, 'de> {
     where
         T: serde::de::DeserializeSeed<'de>,
     {
-        if self.deserializer.peek_char()? == DOUBLE_DAGGER {
+        // ascii
+        if self.deserializer.peek_byte()? == DOUBLE_DAGGER {
             return Ok(None);
         }
-        // not first and not dagger; throw
-        if !self.first && self.deserializer.parse_unsigned::<u32>()? != DAGGER {
+        println!("2: {:?}", self.deserializer.input.iter().map(|&i| format!("{:02x}", i)).collect::<Vec<String>>().join(" "));
+        if !self.first && self.deserializer.parse_unsigned::<u8>()? != DAGGER {
             return Err(CustomError::ExpectedSequenceEnd);
         }
         self.first = false;
         seed.deserialize(&mut *self.deserializer).map(Some)
     }
 }
+
+/// MapVistor: Visits a key values and its end.
 
 struct MapVistor<'a, 'de: 'a> {
     deserializer: &'a mut CustomDeserializer<'de>,
@@ -516,11 +519,11 @@ impl<'de, 'a> MapAccess<'de> for MapVistor<'a, 'de> {
     where
         K: DeserializeSeed<'de>,
     {
-        if self.deserializer.peek_char()? == DOUBLE_DAGGER {
+        if self.deserializer.peek_byte()? == DOUBLE_DAGGER {
             return Ok(None);
         }
         // not first and not dagger; throw
-        if !self.first && self.deserializer.parse_unsigned::<u32>()? != DAGGER {
+        if !self.first && self.deserializer.parse_unsigned::<u8>()? != DAGGER {
             return Err(CustomError::ExpectedSequenceEnd);
         }
         self.first = false;
@@ -531,12 +534,14 @@ impl<'de, 'a> MapAccess<'de> for MapVistor<'a, 'de> {
     where
         V: DeserializeSeed<'de>,
     {
-        if self.deserializer.parse_unsigned::<u32>()? != PIPE {
+        if self.deserializer.parse_unsigned::<u8>()? != PIPE {
             return Err(CustomError::ExpectedPipe);
         }
         seed.deserialize(&mut *self.deserializer)
     }
 }
+
+/// EnumVistor: Visits an enum variant and its end.
 
 struct EnumVistor<'a, 'de: 'a> {
     deserializer: &'a mut CustomDeserializer<'de>,
