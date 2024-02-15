@@ -4,10 +4,11 @@ use serde::{Serialize, Serializer};
 
 use crate::error::CustomError;
 
-pub const NULL: u8 = 0x00;
-pub const DAGGER: u8 = 0x86;
-pub const DOUBLE_DAGGER: u8 = 0x87;
-pub const PIPE: u8 = 0xA6;
+pub const NULL: u8 = 0x0C;
+pub const BELL: u8 = 0x07;
+pub const DAGGER: u8 = 0x2D;
+pub const DOUBLE_DAGGER: u8 = 0x5F;
+pub const PIPE: u8 = 0x23;
 
 #[derive(Debug)]
 struct CustomSerializer {
@@ -228,7 +229,7 @@ impl<'a> serde::ser::Serializer for &'a mut CustomSerializer {
 
     /// BTreeMap<K, V>
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        self.serialize_u8(DOUBLE_DAGGER)?;
+        self.serialize_u8(BELL)?;
         Ok(self)
     }
 
@@ -284,7 +285,7 @@ impl<'a> serde::ser::SerializeTuple for &'a mut CustomSerializer {
     where
         T: Serialize,
     {
-        if self.peek_last(4)? != DOUBLE_DAGGER.to_le_bytes() {
+        if self.peek_last(1)? != DOUBLE_DAGGER.to_le_bytes() {
             self.serialize_u8(DAGGER)?;
         }
         value.serialize(&mut **self)
@@ -304,7 +305,7 @@ impl<'a> serde::ser::SerializeTupleStruct for &'a mut CustomSerializer {
     where
         T: Serialize,
     {
-        if self.peek_last(4)? != DOUBLE_DAGGER.to_le_bytes() {
+        if self.peek_last(1)? != DOUBLE_DAGGER.to_le_bytes() {
             self.serialize_u8(DAGGER)?;
         }
         value.serialize(&mut **self)
@@ -347,7 +348,7 @@ impl<'a> serde::ser::SerializeMap for &'a mut CustomSerializer {
     where
         T: Serialize,
     {
-        if self.peek_last(1)? != DOUBLE_DAGGER.to_le_bytes() {
+        if self.peek_last(1)? != BELL.to_le_bytes() {
             self.serialize_u8(DAGGER)?;
         }
         key.serialize(&mut **self)?;
@@ -362,8 +363,7 @@ impl<'a> serde::ser::SerializeMap for &'a mut CustomSerializer {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u8(DOUBLE_DAGGER)?;
-        Ok(())
+        self.serialize_u8(BELL)
     }
 }
 
@@ -379,7 +379,7 @@ impl<'a> serde::ser::SerializeStruct for &'a mut CustomSerializer {
     where
         T: Serialize,
     {
-        if self.peek_last(1)? != DOUBLE_DAGGER.to_le_bytes() {
+        if self.peek_last(1)? != BELL.to_le_bytes() {
             self.serialize_u8(DAGGER)?;
         }
         key.serialize(&mut **self)?;
@@ -388,7 +388,7 @@ impl<'a> serde::ser::SerializeStruct for &'a mut CustomSerializer {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u8(DOUBLE_DAGGER)?;
+        self.serialize_u8(BELL)?;
         Ok(())
     }
 }

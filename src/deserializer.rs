@@ -1,6 +1,6 @@
 use crate::{
     error::CustomError,
-    serializer::{DAGGER, DOUBLE_DAGGER, NULL, PIPE},
+    serializer::{BELL, DAGGER, DOUBLE_DAGGER, NULL, PIPE},
 };
 use serde::{
     de::{
@@ -34,6 +34,14 @@ where
 impl<'de> CustomDeserializer<'de> {
     /// Returns the next byte in the input without consuming it.
     pub fn peek_byte(&self) -> Result<u8, CustomError> {
+        println!(
+            "peek: {}",
+            self.input
+                .iter()
+                .map(|&i| format!("{:02x}", i))
+                .collect::<Vec<String>>()
+                .join(" ")
+        );
         self.input.first().copied().ok_or(CustomError::EOF)
     }
 
@@ -317,7 +325,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        match self.parse_unsigned::<u8>()? {
+        match self.peek_byte()? {
             NULL => visitor.visit_none(),
             _ => visitor.visit_some(self),
         }
@@ -359,11 +367,17 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
+        println!("calling_seq");
         match self.parse_unsigned::<u8>()? {
             DOUBLE_DAGGER => {
+                println!("visiting_seq");
                 let value = visitor.visit_seq(SequenceVistor::new(self))?;
                 match self.peek_byte()? {
-                    DOUBLE_DAGGER => Ok(value),
+                    DOUBLE_DAGGER => {
+                        println!("unvisiting_seq");
+                        self.next_byte()?;
+                        Ok(value)
+                    }
                     _ => Err(CustomError::ExpectedSequenceEnd),
                 }
             }
@@ -395,11 +409,17 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
+        println!("calling_map");
         match self.parse_unsigned::<u8>()? {
-            DOUBLE_DAGGER => {
-                let value = visitor.visit_map(MapVistor::new(self))?;
+            BELL => {
+                println!("visiting_map");
+                let value = visitor.visit_map(MapVisitor::new(self))?;
                 match self.peek_byte()? {
-                    DOUBLE_DAGGER => Ok(value),
+                    BELL => {
+                        println!("unvisiting_map");
+                        self.next_byte()?;
+                        Ok(value)
+                    }
                     _ => Err(CustomError::ExpectedMapEnd),
                 }
             }
@@ -433,7 +453,10 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
             DOUBLE_DAGGER => {
                 let value = visitor.visit_enum(EnumVistor::new(self))?;
                 match self.peek_byte()? {
-                    DOUBLE_DAGGER => Ok(value),
+                    DOUBLE_DAGGER => {
+                        self.next_byte()?;
+                        Ok(value)
+                    }
                     _ => Err(CustomError::ExpectedEnum),
                 }
             }
@@ -482,13 +505,21 @@ impl<'de, 'a> SeqAccess<'de> for SequenceVistor<'a, 'de> {
     where
         T: serde::de::DeserializeSeed<'de>,
     {
+        println!(
+            "seq: {}",
+            self.deserializer
+                .input
+                .iter()
+                .map(|&i| format!("{:02x}", i))
+                .collect::<Vec<String>>()
+                .join(" ")
+        );
         // ascii
         if self.deserializer.peek_byte()? == DOUBLE_DAGGER {
             return Ok(None);
         }
-        println!("2: {:?}", self.deserializer.input.iter().map(|&i| format!("{:02x}", i)).collect::<Vec<String>>().join(" "));
         if !self.first && self.deserializer.parse_unsigned::<u8>()? != DAGGER {
-            return Err(CustomError::ExpectedSequenceEnd);
+            return Err(CustomError::ExpectedDagger);
         }
         self.first = false;
         seed.deserialize(&mut *self.deserializer).map(Some)
@@ -497,21 +528,21 @@ impl<'de, 'a> SeqAccess<'de> for SequenceVistor<'a, 'de> {
 
 /// MapVistor: Visits a key values and its end.
 
-struct MapVistor<'a, 'de: 'a> {
+struct MapVisitor<'a, 'de: 'a> {
     deserializer: &'a mut CustomDeserializer<'de>,
     first: bool,
 }
 
-impl<'a, 'de> MapVistor<'a, 'de> {
+impl<'a, 'de> MapVisitor<'a, 'de> {
     fn new(deserializer: &'a mut CustomDeserializer<'de>) -> Self {
-        MapVistor {
+        MapVisitor {
             deserializer,
             first: true,
         }
     }
 }
 
-impl<'de, 'a> MapAccess<'de> for MapVistor<'a, 'de> {
+impl<'de, 'a> MapAccess<'de> for MapVisitor<'a, 'de> {
     type Error = CustomError;
 
     /// key | value D key | value D key | value DD
@@ -519,12 +550,15 @@ impl<'de, 'a> MapAccess<'de> for MapVistor<'a, 'de> {
     where
         K: DeserializeSeed<'de>,
     {
-        if self.deserializer.peek_byte()? == DOUBLE_DAGGER {
+        println!("visiting_map_key");
+        // since the seperate betwen
+        if self.deserializer.peek_byte()? == BELL {
+            println!("map_peek_end");
             return Ok(None);
         }
         // not first and not dagger; throw
         if !self.first && self.deserializer.parse_unsigned::<u8>()? != DAGGER {
-            return Err(CustomError::ExpectedSequenceEnd);
+            return Err(CustomError::ExpectedDagger);
         }
         self.first = false;
         seed.deserialize(&mut *self.deserializer).map(Some)
@@ -534,6 +568,7 @@ impl<'de, 'a> MapAccess<'de> for MapVistor<'a, 'de> {
     where
         V: DeserializeSeed<'de>,
     {
+        println!("visiting_map_value");
         if self.deserializer.parse_unsigned::<u8>()? != PIPE {
             return Err(CustomError::ExpectedPipe);
         }
