@@ -4,10 +4,10 @@ use serde::{Serialize, Serializer};
 
 use crate::error::CustomError;
 
-pub const DELETE: u8 = 0x7F;
-pub const TILDE: u8 = 0x7E;
+pub const BYTE_WRAPPER: u8 = 0x7F;
+pub const STRING_WRAPPER: u8 = 0x7E;
 pub const NULL: u8 = 0x0C;
-pub const BELL: u8 = 0x07;
+pub const MAP_WRAPPER: u8 = 0x07;
 pub const DAGGER: u8 = 0x2D;
 pub const DOUBLE_DAGGER: u8 = 0x5F;
 pub const PIPE: u8 = 0x23;
@@ -118,17 +118,17 @@ impl<'a> serde::ser::Serializer for &'a mut CustomSerializer {
 
     /// "Hello, World!"
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u8(TILDE)?;
+        self.serialize_u8(STRING_WRAPPER)?;
         self.output.extend(v.as_bytes());
-        self.serialize_u8(TILDE)?;
+        self.serialize_u8(STRING_WRAPPER)?;
         Ok(())
     }
 
     /// [u8]
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u8(DELETE)?;
+        self.serialize_u8(BYTE_WRAPPER)?;
         self.output.extend(v);
-        self.serialize_u8(DELETE)?;
+        self.serialize_u8(BYTE_WRAPPER)?;
         Ok(())
     }
 
@@ -174,11 +174,11 @@ impl<'a> serde::ser::Serializer for &'a mut CustomSerializer {
         variant_index: u32,
         _variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u8(DAGGER)?;
+        self.serialize_u8(DOUBLE_DAGGER)?;
         self.serialize_u32(variant_index)
     }
-
     /// E::N in enum E { N(u8) }
+    /// DD variant_index value DD
     fn serialize_newtype_variant<T: ?Sized>(
         self,
         _name: &'static str,
@@ -191,9 +191,31 @@ impl<'a> serde::ser::Serializer for &'a mut CustomSerializer {
     {
         self.serialize_u8(DOUBLE_DAGGER)?;
         self.serialize_u32(variant_index)?;
-        value.serialize(&mut *self)?;
+        value.serialize(&mut *self)
+    }
+    /// E::S in enum E { S { r: u8, g: u8, b: u8 } }
+    fn serialize_struct_variant(
+        self,
+        _name: &'static str,
+        variant_index: u32,
+        _variant: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeStructVariant, Self::Error> {
         self.serialize_u8(DOUBLE_DAGGER)?;
-        Ok(())
+        self.serialize_u32(variant_index)?;
+        self.serialize_map(None)
+    }
+    /// E::T in enum E { T(u8, u8) }
+    fn serialize_tuple_variant(
+        self,
+        _name: &'static str,
+        variant_index: u32,
+        _variant: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeTupleVariant, Self::Error> {
+        self.serialize_u8(DOUBLE_DAGGER)?;
+        self.serialize_u32(variant_index)?;
+        Ok(self)
     }
 
     /// Vec<T> or HashSet<T>
@@ -216,22 +238,9 @@ impl<'a> serde::ser::Serializer for &'a mut CustomSerializer {
         self.serialize_seq(Some(len))
     }
 
-    /// E::T in enum E { T(u8, u8) }
-    fn serialize_tuple_variant(
-        self,
-        _name: &'static str,
-        variant_index: u32,
-        _variant: &'static str,
-        _len: usize,
-    ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        self.serialize_u8(DOUBLE_DAGGER)?;
-        self.serialize_u32(variant_index)?;
-        Ok(self)
-    }
-
     /// BTreeMap<K, V>
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        self.serialize_u8(BELL)?;
+        self.serialize_u8(MAP_WRAPPER)?;
         Ok(self)
     }
 
@@ -242,18 +251,6 @@ impl<'a> serde::ser::Serializer for &'a mut CustomSerializer {
         len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
         self.serialize_map(Some(len))
-    }
-
-    /// E::S in enum E { S { r: u8, g: u8, b: u8 } }
-    fn serialize_struct_variant(
-        self,
-        _name: &'static str,
-        variant_index: u32,
-        _variant: &'static str,
-        _len: usize,
-    ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        self.serialize_u32(variant_index)?;
-        Ok(self)
     }
 }
 
@@ -329,6 +326,7 @@ impl<'a> serde::ser::SerializeTupleVariant for &'a mut CustomSerializer {
     {
         // we know the last 8 bytes are the the dagger and the variant index
         let last_seperator = self.peek_last(5)?[0];
+        dbg!(last_seperator);
         if last_seperator != DOUBLE_DAGGER {
             self.serialize_u8(DAGGER)?;
         }
@@ -336,8 +334,7 @@ impl<'a> serde::ser::SerializeTupleVariant for &'a mut CustomSerializer {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u8(DOUBLE_DAGGER)?;
-        todo!()
+        self.serialize_u8(DOUBLE_DAGGER)
     }
 }
 
@@ -350,7 +347,7 @@ impl<'a> serde::ser::SerializeMap for &'a mut CustomSerializer {
     where
         T: Serialize,
     {
-        if self.peek_last(1)? != BELL.to_le_bytes() {
+        if self.peek_last(1)? != MAP_WRAPPER.to_le_bytes() {
             self.serialize_u8(DAGGER)?;
         }
         key.serialize(&mut **self)?;
@@ -365,7 +362,7 @@ impl<'a> serde::ser::SerializeMap for &'a mut CustomSerializer {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u8(BELL)
+        self.serialize_u8(MAP_WRAPPER)
     }
 }
 
@@ -381,16 +378,17 @@ impl<'a> serde::ser::SerializeStruct for &'a mut CustomSerializer {
     where
         T: Serialize,
     {
-        if self.peek_last(1)? != BELL.to_le_bytes() {
-            self.serialize_u8(DAGGER)?;
-        }
+        println!("SerializeStruct:serialize_field");
+        self.serialize_u8(DAGGER)?;
         key.serialize(&mut **self)?;
         self.serialize_u8(PIPE)?;
-        value.serialize(&mut **self)
+        value.serialize(&mut **self)?;
+        Ok(())
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u8(BELL)?;
+        println!("SerializeStruct:end");
+        self.serialize_u8(MAP_WRAPPER)?;
         Ok(())
     }
 }
@@ -407,7 +405,7 @@ impl<'a> serde::ser::SerializeStructVariant for &'a mut CustomSerializer {
     where
         T: Serialize,
     {
-        if self.peek_last(1)? != DOUBLE_DAGGER.to_le_bytes() {
+        if self.peek_last(5)?[4] != MAP_WRAPPER {
             self.serialize_u8(DAGGER)?;
         }
         key.serialize(&mut **self)?;
@@ -416,7 +414,6 @@ impl<'a> serde::ser::SerializeStructVariant for &'a mut CustomSerializer {
     }
 
     fn end(self) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u8(DOUBLE_DAGGER)?;
-        Ok(())
+        self.serialize_u8(MAP_WRAPPER)
     }
 }

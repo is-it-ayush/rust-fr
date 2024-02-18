@@ -1,6 +1,6 @@
 use crate::{
     error::CustomError,
-    serializer::{BELL, DAGGER, DELETE, DOUBLE_DAGGER, NULL, PIPE, TILDE},
+    serializer::{BYTE_WRAPPER, DAGGER, DOUBLE_DAGGER, MAP_WRAPPER, NULL, PIPE, STRING_WRAPPER},
 };
 use serde::{
     de::{
@@ -179,7 +179,7 @@ impl<'de> CustomDeserializer<'de> {
     pub fn parse_string(&mut self, bytes: &mut Vec<u8>) -> Result<String, CustomError> {
         loop {
             let next_byte = self.next_byte()?;
-            if next_byte == TILDE {
+            if next_byte == STRING_WRAPPER {
                 break;
             }
             bytes.push(next_byte);
@@ -191,7 +191,7 @@ impl<'de> CustomDeserializer<'de> {
     pub fn parse_bytes(&mut self, bytes: &mut Vec<u8>) -> Result<Vec<u8>, CustomError> {
         loop {
             let next_byte = self.next_byte()?;
-            if next_byte == DELETE {
+            if next_byte == BYTE_WRAPPER {
                 break;
             }
             bytes.push(next_byte);
@@ -301,7 +301,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
         V: serde::de::Visitor<'de>,
     {
         match self.next_byte()? {
-            TILDE => {
+            STRING_WRAPPER => {
                 let mut bytes = Vec::<u8>::new();
                 visitor.visit_str(self.parse_string(&mut bytes)?.as_str())
             }
@@ -321,7 +321,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
         V: serde::de::Visitor<'de>,
     {
         match self.next_byte()? {
-            TILDE => {
+            BYTE_WRAPPER => {
                 let mut bytes = Vec::<u8>::new();
                 visitor.visit_bytes(self.parse_bytes(&mut bytes)?.as_slice())
             }
@@ -334,7 +334,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
         V: serde::de::Visitor<'de>,
     {
         match self.next_byte()? {
-            TILDE => {
+            BYTE_WRAPPER => {
                 let mut bytes = Vec::<u8>::new();
                 visitor.visit_byte_buf(self.parse_bytes(&mut bytes)?)
             }
@@ -347,7 +347,10 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
         V: serde::de::Visitor<'de>,
     {
         match self.peek_byte()? {
-            NULL => visitor.visit_none(),
+            NULL => {
+                self.next_byte()?;
+                visitor.visit_none()
+            }
             _ => visitor.visit_some(self),
         }
     }
@@ -427,18 +430,38 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
+        println!("\ndeserialize_map: {}", '-'.to_string().repeat(80));
+        println!(
+            "deserialize_map:Start {:?}",
+            self.input
+                .iter()
+                .map(|&i| format!("{:02x}", i))
+                .collect::<Vec<String>>()
+                .join(" ")
+        );
         match self.parse_unsigned::<u8>()? {
-            BELL => {
+            MAP_WRAPPER => {
                 let value = visitor.visit_map(MapVisitor::new(self))?;
                 match self.peek_byte()? {
-                    BELL => {
+                    MAP_WRAPPER => {
                         self.next_byte()?;
+                        println!(
+                            "deserialize_map:End {:?}",
+                            self.input
+                                .iter()
+                                .map(|&i| format!("{:02x}", i))
+                                .collect::<Vec<String>>()
+                                .join(" ")
+                        );
                         Ok(value)
                     }
                     _ => Err(CustomError::ExpectedMapEnd),
                 }
             }
-            _ => Err(CustomError::ExpectedMapEnd),
+            e => {
+                println!("map: {:x}", e);
+                Err(CustomError::ExpectedMapEnd)
+            }
         }
     }
 
@@ -464,19 +487,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
         V: serde::de::Visitor<'de>,
     {
         match self.parse_signed::<u8>()? {
-            // newtype variant
-            DOUBLE_DAGGER => {
-                let value = visitor.visit_enum(EnumVistor::new(self))?;
-                match self.peek_byte()? {
-                    DOUBLE_DAGGER => {
-                        self.next_byte()?;
-                        Ok(value)
-                    }
-                    _ => Err(CustomError::ExpectedEnum),
-                }
-            }
-            // unit variant
-            DAGGER => visitor.visit_enum(self.parse_unsigned::<u32>()?.into_deserializer()),
+            DOUBLE_DAGGER => visitor.visit_enum(EnumVistor::new(self)),
             _ => Err(CustomError::ExpectedEnum),
         }
     }
@@ -556,11 +567,25 @@ impl<'de, 'a> MapAccess<'de> for MapVisitor<'a, 'de> {
     where
         K: DeserializeSeed<'de>,
     {
+        println!("MapVistor:next_key_seed {}", '-'.to_string().repeat(40));
+        println!(
+            "{}",
+            self.deserializer
+                .input
+                .iter()
+                .map(|&i| format!("{:02x}", i))
+                .collect::<Vec<String>>()
+                .join(" ")
+        );
         // since the seperate betwen
-        if self.deserializer.peek_byte()? == BELL {
+        if self.deserializer.peek_byte()? == MAP_WRAPPER {
             return Ok(None);
         }
         // not first and not dagger; throw
+        println!(
+            "MapVistor:next_key_seed:peek_byte: {:x}",
+            self.deserializer.peek_byte()?
+        );
         if !self.first && self.deserializer.parse_unsigned::<u8>()? != DAGGER {
             return Err(CustomError::ExpectedDagger);
         }
@@ -572,6 +597,7 @@ impl<'de, 'a> MapAccess<'de> for MapVisitor<'a, 'de> {
     where
         V: DeserializeSeed<'de>,
     {
+        println!("MapVistor:next_value_seed {}", '-'.to_string().repeat(40));
         if self.deserializer.parse_unsigned::<u8>()? != PIPE {
             return Err(CustomError::ExpectedPipe);
         }
@@ -599,6 +625,7 @@ impl<'de, 'a> EnumAccess<'de> for EnumVistor<'a, 'de> {
     where
         V: DeserializeSeed<'de>,
     {
+        println!("EnumVisitor:variant_seed {}", '-'.to_string().repeat(40));
         let key = self.deserializer.parse_unsigned::<u32>()?;
         Ok((seed.deserialize(key.into_deserializer())?, self))
     }
@@ -607,14 +634,25 @@ impl<'de, 'a> EnumAccess<'de> for EnumVistor<'a, 'de> {
 impl<'de, 'a> VariantAccess<'de> for EnumVistor<'a, 'de> {
     type Error = CustomError;
 
+    // should never execute since we deserialize the in `deserialize_enum`
     fn unit_variant(self) -> Result<(), Self::Error> {
-        Err(CustomError::ExpectedU32)
+        Ok(())
     }
 
     fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value, Self::Error>
     where
         T: DeserializeSeed<'de>,
     {
+        println!("newtype_variant_seed: {}", '-'.to_string().repeat(40));
+        println!(
+            "{}",
+            self.deserializer
+                .input
+                .iter()
+                .map(|&i| format!("{:02x}", i))
+                .collect::<Vec<String>>()
+                .join(" ")
+        );
         seed.deserialize(&mut *self.deserializer)
     }
 
@@ -633,6 +671,7 @@ impl<'de, 'a> VariantAccess<'de> for EnumVistor<'a, 'de> {
     where
         V: Visitor<'de>,
     {
+        println!("EnumVisitor:struct_variant {}", '-'.to_string().repeat(40));
         de::Deserializer::deserialize_map(&mut *self.deserializer, visitor)
     }
 }

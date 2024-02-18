@@ -23,6 +23,9 @@ pub enum CustomError {
     #[error("type conversion error")]
     ConversionError,
 
+    #[error("expected newtype variant end, found none")]
+    ExpectedNewtypeEnumVariantEnd,
+
     #[error("expected tilde value, found non-tilde value")]
     ExpectedTilde,
 
@@ -52,6 +55,9 @@ pub enum CustomError {
 
     #[error("expected map end, found else")]
     ExpectedMapEnd,
+
+    #[error("expected struct end, found else")]
+    ExpectedStructEnd,
 
     #[error("unexpected none value: {0}")]
     UnexpectedNone(String),

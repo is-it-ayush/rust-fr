@@ -1,58 +1,57 @@
+use second::error::Error;
 use serde::{Deserialize, Serialize};
 
-use crate::error::CustomError;
-
-mod deserializer;
-mod error;
-mod serializer;
+mod second;
 
 #[derive(Debug, Serialize, Deserialize)]
 enum SomeEnum {
-    A,
-    B,
+    A { a: u8, b: u16 },
+    B(u8),
     C,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Person {
     name: String,
+    age: u8,
+    is_human: bool,
+    languages: Vec<String>,
+    field1: SomeEnum,
+    field2: Option<SomeEnum>,
+    some_struct: SomeStruct,
 }
 
-fn main() {
+#[derive(Debug, Serialize, Deserialize)]
+struct SomeStruct {
+    a: u8,
+    b: u16,
+}
+
+fn main() -> Result<(), Error> {
     let person = Person {
         name: "Ayush".to_string(),
+        age: 19,
+        is_human: true,
+        languages: vec!["English".to_string(), "Hindi".to_string()],
+        field1: SomeEnum::A { a: 1, b: 2 },
+        field2: None,
+        some_struct: SomeStruct { a: 1, b: 2 },
     };
+    println!("{:?}\n", person);
 
-    println!("Original Data: {:?}\n", person);
+    let bytes = second::serializer::to_bytes(&person)?;
 
-    let bytes = serializer::to_bytes(&person).unwrap();
+    println!("{}", bytes.len());
     println!(
-        "Serialized Data: {:?}\n",
+        "{}\n",
         bytes
             .iter()
-            .map(|&i| format!("{:02x}", i))
-            .collect::<Vec<String>>()
-            .join(" ")
+            .map(|b| format!("{:02x} ", b))
+            .collect::<String>()
     );
-    println!("Serialized Data Length: {}\n", bytes.len());
 
-    let deserialized_person = deserializer::from_bytes::<Person>(&bytes)
-        .map_err(|e| CustomError::DeserializationError(e.to_string()));
-    println!("Deserialized Data: {:?}\n", deserialized_person);
+    let deserialized_person = second::deserializer::from_bytes::<Person>(&bytes)?;
+    println!("Deserialized: \n{:?}\n", deserialized_person);
 
-    // let binary: String = bytes
-    //     .iter()
-    //     .map(|&i| format!("{:08b}", i))
-    //     .collect::<Vec<String>>()
-    //     .join(" ");
-
-    // println!("Binary Stream: {}", binary);
-
-    // let hex: String = bytes
-    //     .iter()
-    //     .map(|&i| format!("{:02x}", i))
-    //     .collect::<Vec<String>>()
-    //     .join(" ");
-
-    // println!("Hex Stream: {}", hex);
+    Ok(())
 }
