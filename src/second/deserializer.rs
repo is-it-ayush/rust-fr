@@ -310,7 +310,6 @@ impl<'de, 'a> Deserializer<'de> for &'a mut MinimialDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        println!("deserialize_string: {}", self.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
         match self.parse_unsigned::<u8>()? {
             STRING_DELIMITER => {
                 let mut bytes = Vec::new();
@@ -325,7 +324,6 @@ impl<'de, 'a> Deserializer<'de> for &'a mut MinimialDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        println!("deserialize_bytes: {}", self.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
         match self.parse_unsigned::<u8>()? {
             BYTE_DELIMITER => {
                 let mut bytes = Vec::new();
@@ -340,7 +338,6 @@ impl<'de, 'a> Deserializer<'de> for &'a mut MinimialDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        println!("deserialize_byte_buf: {}", self.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
         match self.parse_unsigned::<u8>()? {
             BYTE_DELIMITER => {
                 let mut bytes = Vec::new();
@@ -356,12 +353,11 @@ impl<'de, 'a> Deserializer<'de> for &'a mut MinimialDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        println!("deserialize_option: {}", self.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
         match self.peek_byte()? {
             &UNIT => {
                 self.eat_byte()?;
                 visitor.visit_none()
-            },
+            }
             _ => visitor.visit_some(self),
         }
     }
@@ -370,7 +366,6 @@ impl<'de, 'a> Deserializer<'de> for &'a mut MinimialDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        println!("deserialize_unit: {}", self.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
         match self.parse_unsigned::<u8>()? {
             UNIT => visitor.visit_unit(),
             _ => Err(Error::ExpectedUnit),
@@ -387,7 +382,6 @@ impl<'de, 'a> Deserializer<'de> for &'a mut MinimialDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        println!("deserialize_unit_struct: {}", self.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
         self.deserialize_unit(visitor)
     }
     /// - newtype_struct: self
@@ -399,7 +393,6 @@ impl<'de, 'a> Deserializer<'de> for &'a mut MinimialDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        println!("deserialize_newtype_struct: {}", self.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
         visitor.visit_newtype_struct(self)
     }
     /// - tuple_struct: seq()
@@ -412,7 +405,6 @@ impl<'de, 'a> Deserializer<'de> for &'a mut MinimialDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        println!("deserialize_tuple_struct: {}", self.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
         self.deserialize_seq(visitor)
     }
 
@@ -430,8 +422,6 @@ impl<'de, 'a> Deserializer<'de> for &'a mut MinimialDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        println!("deserialize_enum: start of enum");
-        println!("deserialize_enum: {}", self.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
         match self.parse_unsigned::<u8>()? {
             ENUM_DELIMITER => visitor.visit_enum(self),
             _ => Err(Error::ExpectedEnumDelimiter),
@@ -444,8 +434,6 @@ impl<'de, 'a> Deserializer<'de> for &'a mut MinimialDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        println!("deserialize_seq: start of seq");
-        println!("deserialize_seq: {}", self.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
         match self.parse_unsigned::<u8>()? {
             SEQ_DELIMITER => {
                 let value = visitor.visit_seq(MinimalSequenceDeserializer::new(self))?;
@@ -462,21 +450,15 @@ impl<'de, 'a> Deserializer<'de> for &'a mut MinimialDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        println!("deserialize_map: start of map");
-        println!("deserialize_map: {}", self.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
         match self.parse_unsigned::<u8>()? {
             MAP_DELIMITER => {
                 let value = visitor.visit_map(MinimalMapDeserializer::new(self))?;
-                println!("deserialize_map:{}", self.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
                 if self.parse_unsigned::<u8>()? != MAP_DELIMITER {
                     return Err(Error::ExpectedMapDelimiter);
                 }
                 Ok(value)
             }
-            e => {
-                println!("{:0x} != {:0x}", e, MAP_DELIMITER);
-                Err(Error::ExpectedMapDelimiter)
-            }
+            e => Err(Error::ExpectedMapDelimiter),
         }
     }
 
@@ -486,7 +468,6 @@ impl<'de, 'a> Deserializer<'de> for &'a mut MinimialDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        println!("deserialize_tuple: {}", self.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
         self.deserialize_seq(visitor)
     }
     /// - struct: map()
@@ -499,7 +480,6 @@ impl<'de, 'a> Deserializer<'de> for &'a mut MinimialDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        println!("deserialize_struct: {}", self.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
         self.deserialize_map(visitor)
     }
 
@@ -507,7 +487,6 @@ impl<'de, 'a> Deserializer<'de> for &'a mut MinimialDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        println!("deserialize_identifier: {}", self.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
         self.deserialize_str(visitor)
     }
 
@@ -532,10 +511,8 @@ impl<'de, 'a> EnumAccess<'de> for &'a mut MinimialDeserializer<'de> {
     where
         V: serde::de::DeserializeSeed<'de>,
     {
-        println!("enum:variant_seed: {}", self.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
         // ENUM_DELIMITER + variant_index + (depends on variant type; handled by variant_access)
         let key = self.parse_unsigned::<u32>()?;
-        println!("enum:variant_seed: after parse_unsigned: {}", self.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
         Ok((seed.deserialize(key.into_deserializer())?, self))
     }
 }
@@ -635,7 +612,6 @@ impl<'de, 'a> MapAccess<'de> for MinimalMapDeserializer<'a, 'de> {
     {
         // if at end of map; exit
         if self.deserializer.peek_byte()? == &MAP_DELIMITER {
-            println!("map:next_key_seed: end of map");
             return Ok(None);
         }
         // if not first and not at the end of map; eat MAP_KEY_DELIMITER
@@ -644,7 +620,6 @@ impl<'de, 'a> MapAccess<'de> for MinimalMapDeserializer<'a, 'de> {
         }
         // make not first; deserialize next key_1
         self.first = false;
-        println!("map:next_key_seed: before deserialize: {}", self.deserializer.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
         if self.deserializer.parse_unsigned::<u8>()? != MAP_KEY_DELIMITER {
             return Err(Error::ExpectedMapKeyDelimiter);
         }
@@ -652,7 +627,6 @@ impl<'de, 'a> MapAccess<'de> for MinimalMapDeserializer<'a, 'de> {
         if self.deserializer.parse_unsigned::<u8>()? != MAP_KEY_DELIMITER {
             return Err(Error::ExpectedMapKeyDelimiter);
         }
-        println!("map:next_key_seed: after deserialize: {}", self.deserializer.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
         Ok(value)
     }
 
@@ -660,17 +634,14 @@ impl<'de, 'a> MapAccess<'de> for MinimalMapDeserializer<'a, 'de> {
     where
         V: serde::de::DeserializeSeed<'de>,
     {
-        println!("map:next_value_seed: before deserialize: {}", self.deserializer.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
         // remove the last MAP_VALUE_DELIMITER and deserialize the value
         if self.deserializer.eat_byte()? != MAP_VALUE_DELIMITER {
             return Err(Error::ExpectedMapValueDelimiter);
         }
-        println!("map:next_value_seed: after eat_byte: {}", self.deserializer.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
         let value = seed.deserialize(&mut *self.deserializer)?;
         if self.deserializer.eat_byte()? != MAP_VALUE_DELIMITER {
             return Err(Error::ExpectedMapValueDelimiter);
         }
-        println!("map:next_value_seed: after deserialize: {}", self.deserializer.data.iter().map(|b| format!("{:0x}", b)).collect::<String>());
         Ok(value)
     }
 }

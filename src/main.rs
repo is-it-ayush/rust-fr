@@ -37,21 +37,22 @@ fn main() -> Result<(), Error> {
         field2: None,
         some_struct: SomeStruct { a: 1, b: 2 },
     };
-    println!("{:?}\n", person);
+    println!("Data:\n{:?}\n", person);
 
+    // Serialize
     let bytes = second::serializer::to_bytes(&person)?;
-
-    println!("{}", bytes.len());
+    println!("Serialized Length:\n{}\n", bytes.len());
     println!(
-        "{}\n",
+        "Serialized Bytes (hex):\n{}\n",
         bytes
             .iter()
-            .map(|b| format!("{:02x} ", b))
+            .map(|b| format!("{:x} ", b))
             .collect::<String>()
     );
 
+    // Deserialize
     let deserialized_person = second::deserializer::from_bytes::<Person>(&bytes)?;
-    println!("Deserialized: \n{:?}\n", deserialized_person);
+    println!("Deserialized:\n{:?}\n", deserialized_person);
 
     Ok(())
 }
