@@ -311,7 +311,7 @@ impl<'a> SerializeStruct for &'a mut CustomSerializer {
     type Ok = ();
     type Error = Error;
 
-    // MAP_DELIMITER + MAP_KEY_DELIMITER + key + MAP_KEY_DELIMITER + MAP_VALUE_DELIMITER + value + MAP_VALUE_DELIMITER + MAP_VALUE_SEPARATOR + ... + MAP_DELIMITER
+    // MAP_DELIMITER + MAP_KEY_DELIMITER + key + MAP_KEY_DELIMITER + MAP_VALUE_DELIMITER + value + MAP_VALUE_DELIMITER + ... + MAP_DELIMITER
     fn serialize_field<T: ?Sized>(
         &mut self,
         key: &'static str,

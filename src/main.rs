@@ -17,6 +17,7 @@ struct Person {
     age: u8,
     is_human: bool,
     some_enum: SomeEnum,
+    som_other_enum: SomeEnum,
     some_struct: SomeStruct,
     hash_map: std::collections::HashMap<String, i32>,
 }
@@ -39,6 +40,7 @@ fn run() -> Result<(), Error> {
         age: 19,
         is_human: false,
         some_enum: SomeEnum::A { a: 142, b: 5156 },
+        som_other_enum: SomeEnum::B(4),
         some_struct: SomeStruct { a: 32, b: 51 },
         hash_map: {
             let mut map = std::collections::HashMap::new();

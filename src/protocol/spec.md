@@ -33,10 +33,10 @@
     - MAP_DELIMITER +
         key_1 + MAP_KEY_DELIMITER +
         value_1 + MAP_VALUE_DELIMITER +
-        MAP_VALUE_SEPARATOR +
         key_2 + MAP_KEY_DELIMITER +
         value_2 + MAP_VALUE_DELIMITER +
         ...
+    MAP_DELIMITER
 
 - Tuples and Structs are serialized as:
     - tuple: seq()
