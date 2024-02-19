@@ -6,8 +6,8 @@ use serde::{
 use super::{
     error::Error,
     serializer::{
-        BYTE_DELIMITER, MAP_DELIMITER, MAP_KEY_DELIMITER, MAP_VALUE_DELIMITER,
-        SEQ_DELIMITER, SEQ_VALUE_DELIMITER, STRING_DELIMITER, UNIT,
+        BYTE_DELIMITER, MAP_DELIMITER, MAP_KEY_DELIMITER, MAP_VALUE_DELIMITER, SEQ_DELIMITER,
+        SEQ_VALUE_DELIMITER, STRING_DELIMITER, UNIT,
     },
 };
 
@@ -409,16 +409,11 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        match self.parse_unsigned::<u8>()? {
-            MAP_DELIMITER => {
-                let value = visitor.visit_map(MinimalMapDeserializer::new(self))?;
-                if self.parse_unsigned::<u8>()? != MAP_DELIMITER {
-                    return Err(Error::ExpectedMapDelimiter);
-                }
-                Ok(value)
-            }
-            _e => Err(Error::ExpectedMapDelimiter),
+        let value = visitor.visit_map(MinimalMapDeserializer::new(self))?;
+        if self.parse_unsigned::<u8>()? != MAP_DELIMITER {
+            return Err(Error::ExpectedMapDelimiter);
         }
+        Ok(value)
     }
 
     /// Tuple & Struct Deserialization.

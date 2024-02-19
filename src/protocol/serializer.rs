@@ -226,7 +226,6 @@ impl<'a> Serializer for &'a mut CustomSerializer {
     }
     /// maps: MAP_DELIMITER key_1 MAP_KEY_DELIMITER value_1 MAP_VALUE_DELIMITER key_2 MAP_KEY_DELIMITER value_2 MAP_VALUE_DELIMITER ... MAP_DELIMITER
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
-        self.serialize_u8(MAP_DELIMITER)?;
         Ok(self)
     }
 
