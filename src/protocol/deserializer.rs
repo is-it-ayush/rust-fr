@@ -3,13 +3,11 @@ use serde::{
     Deserialize, Deserializer,
 };
 
-use crate::second::serializer::SEQ_DELIMITER;
-
 use super::{
     error::Error,
     serializer::{
         BYTE_DELIMITER, ENUM_DELIMITER, MAP_DELIMITER, MAP_KEY_DELIMITER, MAP_VALUE_DELIMITER,
-        MAP_VALUE_SEPARATOR, SEQ_VALUE_DELIMITER, STRING_DELIMITER, UNIT,
+        MAP_VALUE_SEPARATOR, SEQ_VALUE_DELIMITER, STRING_DELIMITER, UNIT, SEQ_DELIMITER
     },
 };
 
@@ -50,7 +48,7 @@ use super::{
 ///     - struct: map()
 
 #[derive(Debug)]
-struct MinimialDeserializer<'de> {
+struct CustomDeserializer<'de> {
     data: &'de [u8],
 }
 
@@ -58,12 +56,12 @@ pub fn from_bytes<'de, T>(bytes: &'de [u8]) -> Result<T, Error>
 where
     T: Deserialize<'de>,
 {
-    let mut deserializer = MinimialDeserializer { data: bytes };
+    let mut deserializer = CustomDeserializer { data: bytes };
     let deserialized = T::deserialize(&mut deserializer)?;
     Ok(deserialized)
 }
 
-impl<'de> MinimialDeserializer<'de> {
+impl<'de> CustomDeserializer<'de> {
     /// Get the last byte from the data.
     pub fn peek_byte(&self) -> Result<&u8, Error> {
         let data = self.data.first().ok_or(Error::NoByte)?;
@@ -209,7 +207,7 @@ impl<'de> MinimialDeserializer<'de> {
     }
 }
 
-impl<'de, 'a> Deserializer<'de> for &'a mut MinimialDeserializer<'de> {
+impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     type Error = Error;
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -502,7 +500,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut MinimialDeserializer<'de> {
 
 /// Enum Deserialization
 /// ENUM_DELIMITER + variant_index + (depends on variant type; handled by VARIANT_ACCESS)
-impl<'de, 'a> EnumAccess<'de> for &'a mut MinimialDeserializer<'de> {
+impl<'de, 'a> EnumAccess<'de> for &'a mut CustomDeserializer<'de> {
     type Error = Error;
     type Variant = Self;
 
@@ -516,7 +514,7 @@ impl<'de, 'a> EnumAccess<'de> for &'a mut MinimialDeserializer<'de> {
         Ok((seed.deserialize(key.into_deserializer())?, self))
     }
 }
-impl<'de, 'a> VariantAccess<'de> for &'a mut MinimialDeserializer<'de> {
+impl<'de, 'a> VariantAccess<'de> for &'a mut CustomDeserializer<'de> {
     type Error = Error;
 
     /// - unit_variant: ENUM_DELIMITER + variant_index
@@ -556,11 +554,11 @@ impl<'de, 'a> VariantAccess<'de> for &'a mut MinimialDeserializer<'de> {
 /// Sequence Deserialization: seq()
 ///     - SEQ_DELIMITER + value_1 + SEQ_VALUE_DELIMITER + value_2 + SEQ_VALUE_DELIMITER + ... + SEQ_DELIMITER
 struct MinimalSequenceDeserializer<'a, 'de: 'a> {
-    deserializer: &'a mut MinimialDeserializer<'de>,
+    deserializer: &'a mut CustomDeserializer<'de>,
     first: bool,
 }
 impl<'a, 'de> MinimalSequenceDeserializer<'a, 'de> {
-    pub fn new(deserializer: &'a mut MinimialDeserializer<'de>) -> Self {
+    pub fn new(deserializer: &'a mut CustomDeserializer<'de>) -> Self {
         Self {
             deserializer: deserializer,
             first: true,
@@ -592,11 +590,11 @@ impl<'de, 'a> SeqAccess<'de> for MinimalSequenceDeserializer<'a, 'de> {
 /// Map Deserialization: map()
 ///     - MAP_DELIMITER + key_1 + MAP_KEY_DELIMITER + value_1 + MAP_VALUE_DELIMITER + key_2 + MAP_KEY_DELIMITER + value_2 + MAP_VALUE_DELIMITER + ... + MAP_DELIMITER
 struct MinimalMapDeserializer<'a, 'de: 'a> {
-    deserializer: &'a mut MinimialDeserializer<'de>,
+    deserializer: &'a mut CustomDeserializer<'de>,
     first: bool,
 }
 impl<'a, 'de> MinimalMapDeserializer<'a, 'de> {
-    pub fn new(deserializer: &'a mut MinimialDeserializer<'de>) -> Self {
+    pub fn new(deserializer: &'a mut CustomDeserializer<'de>) -> Self {
         Self {
             deserializer: deserializer,
             first: true,

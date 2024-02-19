@@ -63,17 +63,17 @@ pub const MAP_VALUE_SEPARATOR: u8 = 0x3D; // = (equal)
 ///     - struct: map()
 
 #[derive(Debug)]
-struct MinimalSerializer {
+struct CustomSerializer {
     data: Vec<u8>,
 }
 
 pub fn to_bytes<T: Serialize>(value: &T) -> Result<Vec<u8>, Error> {
-    let mut serializer = MinimalSerializer { data: Vec::new() };
+    let mut serializer = CustomSerializer { data: Vec::new() };
     value.serialize(&mut serializer)?;
     Ok(serializer.data)
 }
 
-impl MinimalSerializer {
+impl CustomSerializer {
     /// Get the last byte from the data.
     pub fn peek_byte(&self) -> Result<&u8, Error> {
         self.data.last().ok_or(Error::NoByte)
@@ -94,7 +94,7 @@ impl MinimalSerializer {
     }
 }
 
-impl<'a> Serializer for &'a mut MinimalSerializer {
+impl<'a> Serializer for &'a mut CustomSerializer {
     type Ok = ();
     type Error = Error;
 
@@ -298,7 +298,7 @@ impl<'a> Serializer for &'a mut MinimalSerializer {
     }
 }
 
-impl<'a> SerializeSeq for &'a mut MinimalSerializer {
+impl<'a> SerializeSeq for &'a mut CustomSerializer {
     type Ok = ();
     type Error = Error;
 
@@ -316,7 +316,7 @@ impl<'a> SerializeSeq for &'a mut MinimalSerializer {
         self.serialize_u8(SEQ_DELIMITER)
     }
 }
-impl<'a> SerializeMap for &'a mut MinimalSerializer {
+impl<'a> SerializeMap for &'a mut CustomSerializer {
     type Ok = ();
     type Error = Error;
 
@@ -347,7 +347,7 @@ impl<'a> SerializeMap for &'a mut MinimalSerializer {
 }
 
 // = seq()
-impl<'a> SerializeTuple for &'a mut MinimalSerializer {
+impl<'a> SerializeTuple for &'a mut CustomSerializer {
     type Ok = ();
     type Error = Error;
 
@@ -366,7 +366,7 @@ impl<'a> SerializeTuple for &'a mut MinimalSerializer {
     }
 }
 // = map()
-impl<'a> SerializeStruct for &'a mut MinimalSerializer {
+impl<'a> SerializeStruct for &'a mut CustomSerializer {
     type Ok = ();
     type Error = Error;
 
@@ -396,7 +396,7 @@ impl<'a> SerializeStruct for &'a mut MinimalSerializer {
 }
 
 // = seq()
-impl<'a> SerializeTupleStruct for &'a mut MinimalSerializer {
+impl<'a> SerializeTupleStruct for &'a mut CustomSerializer {
     type Ok = ();
     type Error = Error;
 
@@ -416,7 +416,7 @@ impl<'a> SerializeTupleStruct for &'a mut MinimalSerializer {
 }
 
 // = tuple() = seq()
-impl<'a> SerializeTupleVariant for &'a mut MinimalSerializer {
+impl<'a> SerializeTupleVariant for &'a mut CustomSerializer {
     type Ok = ();
     type Error = Error;
 
@@ -436,7 +436,7 @@ impl<'a> SerializeTupleVariant for &'a mut MinimalSerializer {
 }
 
 // = struct() = map()
-impl<'a> SerializeStructVariant for &'a mut MinimalSerializer {
+impl<'a> SerializeStructVariant for &'a mut CustomSerializer {
     type Ok = ();
     type Error = Error;
 

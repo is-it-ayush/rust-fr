@@ -1,7 +1,7 @@
-use second::error::Error;
+use protocol::error::Error;
 use serde::{Deserialize, Serialize};
 
-mod second;
+mod protocol;
 
 #[derive(Debug, Serialize, Deserialize)]
 enum SomeEnum {
@@ -16,6 +16,8 @@ struct Person {
     age: u8,
     is_human: bool,
     languages: Vec<String>,
+    hey: i32,
+    hash_map: std::collections::HashMap<String, i32>,
     field1: SomeEnum,
     field2: Option<SomeEnum>,
     some_struct: SomeStruct,
@@ -33,6 +35,13 @@ fn main() -> Result<(), Error> {
         age: 19,
         is_human: true,
         languages: vec!["English".to_string(), "Hindi".to_string()],
+        hey: -123,
+        hash_map: {
+            let mut map = std::collections::HashMap::new();
+            map.insert("one".to_string(), 1);
+            map.insert("two".to_string(), 2);
+            map
+        },
         field1: SomeEnum::A { a: 1, b: 2 },
         field2: None,
         some_struct: SomeStruct { a: 1, b: 2 },
@@ -40,7 +49,7 @@ fn main() -> Result<(), Error> {
     println!("Data:\n{:?}\n", person);
 
     // Serialize
-    let bytes = second::serializer::to_bytes(&person)?;
+    let bytes = protocol::serializer::to_bytes(&person)?;
     println!("Serialized Length:\n{}\n", bytes.len());
     println!(
         "Serialized Bytes (hex):\n{}\n",
@@ -51,7 +60,7 @@ fn main() -> Result<(), Error> {
     );
 
     // Deserialize
-    let deserialized_person = second::deserializer::from_bytes::<Person>(&bytes)?;
+    let deserialized_person = protocol::deserializer::from_bytes::<Person>(&bytes)?;
     println!("Deserialized:\n{:?}\n", deserialized_person);
 
     Ok(())
