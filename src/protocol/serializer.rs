@@ -11,7 +11,6 @@ use super::error::Error;
 pub const STRING_DELIMITER: u8 = 0x22; // " (double quote)
 pub const BYTE_DELIMITER: u8 = 0x23; // # (hash)
 pub const UNIT: u8 = 0x05; // ENQ (enquiry)
-pub const ENUM_DELIMITER: u8 = 0x95; // • (bullet)
 pub const SEQ_DELIMITER: u8 = 0x26; // & (ampersand)
 pub const SEQ_VALUE_DELIMITER: u8 = 0x2E; // . (period)
 pub const MAP_DELIMITER: u8 = 0x3A; // : (colon)
@@ -174,17 +173,16 @@ impl<'a> Serializer for &'a mut CustomSerializer {
     }
 
     /// enum:
-    /// unit_variant: ENUM_DELIMITER variant_index
+    /// unit_variant: variant_index
     fn serialize_unit_variant(
         self,
         _name: &'static str,
         variant_index: u32,
         _variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u8(ENUM_DELIMITER)?;
         self.serialize_u32(variant_index)
     }
-    /// newtype_variant: ENUM_DELIMITER variant_index self
+    /// newtype_variant: variant_index self
     fn serialize_newtype_variant<T: ?Sized>(
         self,
         _name: &'static str,
@@ -195,11 +193,10 @@ impl<'a> Serializer for &'a mut CustomSerializer {
     where
         T: Serialize,
     {
-        self.serialize_u8(ENUM_DELIMITER)?;
         self.serialize_u32(variant_index)?;
         value.serialize(self)
     }
-    /// tuple_variant: ENUM_DELIMITER variant_index tuple()
+    /// tuple_variant: variant_index tuple()
     fn serialize_tuple_variant(
         self,
         _name: &'static str,
@@ -207,11 +204,10 @@ impl<'a> Serializer for &'a mut CustomSerializer {
         _variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
-        self.serialize_u8(ENUM_DELIMITER)?;
         self.serialize_u32(variant_index)?;
         self.serialize_seq(Some(len))
     }
-    /// struct_variant: ENUM_DELIMITER variant_index struct()
+    /// struct_variant: variant_index struct()
     fn serialize_struct_variant(
         self,
         _name: &'static str,
@@ -219,7 +215,6 @@ impl<'a> Serializer for &'a mut CustomSerializer {
         _variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
-        self.serialize_u8(ENUM_DELIMITER)?;
         self.serialize_u32(variant_index)?;
         self.serialize_map(Some(len))
     }

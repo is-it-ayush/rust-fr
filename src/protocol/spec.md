@@ -21,10 +21,10 @@
     - tuple_struct: seq()
 
 - Enums are serialized as:
-    - unit_variant: ENUM_DELIMITER + variant_index
-    - newtype_variant: ENUM_DELIMITER + variant_index + self
-    - tuple_variant: ENUM_DELIMITER + variant_index + tuple()
-    - struct_variant: ENUM_DELIMITER + variant_index + struct()
+    - unit_variant: variant_index
+    - newtype_variant: variant_index + self
+    - tuple_variant: variant_index + tuple()
+    - struct_variant: variant_index + struct()
 
 - Sequences are serialized as:
     - SEQ_DELIMITER + value_1 + SEQ_VALUE_DELIMITER + value_2 + SEQ_VALUE_DELIMITER + ... + SEQ_DELIMITER

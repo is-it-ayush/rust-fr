@@ -6,8 +6,8 @@ use serde::{
 use super::{
     error::Error,
     serializer::{
-        BYTE_DELIMITER, ENUM_DELIMITER, MAP_DELIMITER, MAP_KEY_DELIMITER, MAP_VALUE_DELIMITER,
-        SEQ_DELIMITER, SEQ_VALUE_DELIMITER, STRING_DELIMITER, UNIT
+        BYTE_DELIMITER, MAP_DELIMITER, MAP_KEY_DELIMITER, MAP_VALUE_DELIMITER,
+        SEQ_DELIMITER, SEQ_VALUE_DELIMITER, STRING_DELIMITER, UNIT,
     },
 };
 
@@ -384,10 +384,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        match self.parse_unsigned::<u8>()? {
-            ENUM_DELIMITER => visitor.visit_enum(self),
-            _ => Err(Error::ExpectedEnumDelimiter),
-        }
+        visitor.visit_enum(self)
     }
 
     /// Seq & Map Deserialization.
@@ -463,7 +460,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
 }
 
 /// Enum Deserialization
-/// ENUM_DELIMITER + variant_index + (depends on variant type; handled by VARIANT_ACCESS)
+/// variant_index + (depends on variant type; handled by VARIANT_ACCESS)
 impl<'de, 'a> EnumAccess<'de> for &'a mut CustomDeserializer<'de> {
     type Error = Error;
     type Variant = Self;
@@ -473,7 +470,7 @@ impl<'de, 'a> EnumAccess<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::DeserializeSeed<'de>,
     {
-        // ENUM_DELIMITER + variant_index + (depends on variant type; handled by variant_access)
+        // variant_index + (depends on variant type; handled by variant_access)
         let key = self.parse_unsigned::<u32>()?;
         Ok((seed.deserialize(key.into_deserializer())?, self))
     }
@@ -481,12 +478,12 @@ impl<'de, 'a> EnumAccess<'de> for &'a mut CustomDeserializer<'de> {
 impl<'de, 'a> VariantAccess<'de> for &'a mut CustomDeserializer<'de> {
     type Error = Error;
 
-    /// - unit_variant: ENUM_DELIMITER + variant_index
+    /// - unit_variant: variant_index
     fn unit_variant(self) -> Result<(), Self::Error> {
         Ok(())
     }
 
-    /// - newtype_variant: ENUM_DELIMITER + variant_index + self
+    /// - newtype_variant: variant_index + self
     fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value, Self::Error>
     where
         T: serde::de::DeserializeSeed<'de>,
@@ -494,7 +491,7 @@ impl<'de, 'a> VariantAccess<'de> for &'a mut CustomDeserializer<'de> {
         seed.deserialize(self)
     }
 
-    /// - tuple_variant: ENUM_DELIMITER + variant_index + tuple() => seq()
+    /// - tuple_variant: variant_index + tuple() => seq()
     fn tuple_variant<V>(self, _len: usize, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
@@ -502,7 +499,7 @@ impl<'de, 'a> VariantAccess<'de> for &'a mut CustomDeserializer<'de> {
         self.deserialize_seq(visitor)
     }
 
-    /// - struct_variant: ENUM_DELIMITER + variant_index + struct()
+    /// - struct_variant: variant_index + struct()
     fn struct_variant<V>(
         self,
         fields: &'static [&'static str],
