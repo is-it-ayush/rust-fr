@@ -16,12 +16,9 @@ struct Person {
     name: String,
     age: u8,
     is_human: bool,
-    languages: Vec<String>,
-    hey: i32,
-    hash_map: std::collections::HashMap<String, i32>,
-    field1: SomeEnum,
-    field2: Option<SomeEnum>,
+    some_enum: SomeEnum,
     some_struct: SomeStruct,
+    hash_map: std::collections::HashMap<String, i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -30,53 +27,70 @@ struct SomeStruct {
     b: u16,
 }
 
-fn main() -> Result<(), Error> {
+fn main() {
+    if let Err(e) = run() {
+        eprintln!("Error: {}", e);
+    }
+}
+
+fn run() -> Result<(), Error> {
     let person = Person {
         name: "Ayush".to_string(),
         age: 19,
-        is_human: true,
-        languages: vec!["English".to_string(), "Hindi".to_string()],
-        hey: -123,
+        is_human: false,
+        some_enum: SomeEnum::A { a: 142, b: 5156 },
+        some_struct: SomeStruct { a: 32, b: 51 },
         hash_map: {
             let mut map = std::collections::HashMap::new();
-            map.insert("one".to_string(), 1);
-            map.insert("two".to_string(), 2);
-            for i in 3..=100 {
-                map.insert(i.to_string(), i);
+            for i in 1..=100 {
+                map.insert(i.to_string(), i * 10000);
             }
             map
         },
-        field1: SomeEnum::A { a: 1, b: 2 },
-        field2: None,
-        some_struct: SomeStruct { a: 1, b: 2 },
     };
     println!("Data:\n{:?}\n", person);
 
     // Serialize
     let bytes = protocol::serializer::to_bytes(&person)?;
-    println!("Serialized Length:\n{}\n", bytes.len());
-    println!(
-        "Serialized Bytes (hex):\n{}\n",
-        bytes.iter().fold(String::new(), |mut output, b| {
-            let _ = write!(output, "{b:02X}");
-            output
-        })
-    );
+    println!("Serialized Length (mine): {}", bytes.len());
+    //println!(
+    //    "Serialized Bytes:\n{}\n",
+    //    bytes.iter().fold(String::new(), |mut s, b| {
+    //          write!(&mut s, "{:02x}", b).unwrap();
+    //          s
+    //    })
+    //);
 
     // Serialize with serde_json to Bytes
     let serde_bytes = serde_json::to_vec(&person).unwrap();
-    println!("Serialized Length (serde_json):\n{}\n", serde_bytes.len());
-    println!(
-        "Serialized Bytes (hex) (serde_json):\n{}\n",
-        serde_bytes.iter().fold(String::new(), |mut output, b| {
-            let _ = write!(output, "{b:02X}");
-            output
-        })
-    );
+    println!("Serialized Length (serde_json): {}", serde_bytes.len());
+
+    // Serialize with ciborium to Bytes
+    let mut ciborium_bytes = Vec::new();
+    ciborium::into_writer(&person, &mut ciborium_bytes).unwrap();
+    println!("Serialized Length (ciborium): {}", ciborium_bytes.len());
+    // println!(
+    //     "{}\n",
+    //     ciborium_bytes.iter().fold(String::new(), |mut s, b| {
+    //         write!(&mut s, "{:02x}", b).unwrap();
+    //         s
+    //     })
+    // );
+
+    // Serialize with rmp to Bytes
+    let mut rmp_bytes = rmp_serde::to_vec(&person).unwrap();
+    println!("Serialized Length (rmp): {}", rmp_bytes.len());
+    //println!(
+    //    "{}\n",
+    //    rmp_bytes.iter().fold(String::new(), |mut s, b| {
+    //        write!(&mut s, "{:02x}", b).unwrap();
+    //        s
+    //    })
+    //);
 
     // Deserialize
     let deserialized_person = protocol::deserializer::from_bytes::<Person>(&bytes)?;
-    println!("Deserialized:\n{:?}\n", deserialized_person);
+    println!("\nDeserialized:\n{:?}\n", deserialized_person);
 
     Ok(())
 }

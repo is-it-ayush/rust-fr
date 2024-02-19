@@ -7,45 +7,9 @@ use super::{
     error::Error,
     serializer::{
         BYTE_DELIMITER, ENUM_DELIMITER, MAP_DELIMITER, MAP_KEY_DELIMITER, MAP_VALUE_DELIMITER,
-        MAP_VALUE_SEPARATOR, SEQ_DELIMITER, SEQ_VALUE_DELIMITER, STRING_DELIMITER, UNIT,
+        SEQ_DELIMITER, SEQ_VALUE_DELIMITER, STRING_DELIMITER, UNIT
     },
 };
-
-/// - The seperators are u8.
-/// - The seperators need to be unique among serde-data-model types.
-/// - Primitive types are serialized as is.
-///     - bool: 0 -> false, 1 -> true (1 byte)
-///     - i8, i16, i32, i64: as is.
-///     - u8, u16, u32, u64: as is.
-///     - f32, f64: as is.
-///     - char: as u32 (4 bytes)
-///
-/// - String, Bytes, Unit, Option are serialized as:
-///     - str: STRING_DELIMITER + bytes + STRING_DELIMITER
-///     - bytes: BYTE_DELIMITER + bytes + BYTE_DELIMITER
-///     - unit: UNIT (null)
-///     - option: None -> unit(), Some -> self
-///
-/// - Structs are serialized as:
-///     - unit_struct: unit()
-///     - newtype_struct: self
-///     - tuple_struct: seq()
-///
-/// - Enums are serialized as:
-///     - unit_variant: ENUM_DELIMITER + variant_index
-///     - newtype_variant: ENUM_DELIMITER + variant_index + self
-///     - tuple_variant: ENUM_DELIMITER + variant_index + tuple()
-///     - struct_variant: ENUM_DELIMITER + variant_index + struct()
-///
-/// - Sequences are serialized as:
-///     - SEQ_DELIMITER + value_1 + SEQ_VALUE_DELIMITER + value_2 + SEQ_VALUE_DELIMITER + ... + SEQ_DELIMITER
-///
-/// - Maps are serialized as:
-///     - MAP_DELIMITER + key_1 + MAP_KEY_DELIMITER + value_1 + MAP_VALUE_DELIMITER + key_2 + MAP_KEY_DELIMITER + value_2 + MAP_VALUE_DELIMITER + ... + MAP_DELIMITER
-///
-/// - Tuples and Structs are serialized as:
-///     - tuple: seq()
-///     - struct: map()
 
 #[derive(Debug)]
 struct CustomDeserializer<'de> {
@@ -443,7 +407,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
             _ => Err(Error::ExpectedSeqDelimiter),
         }
     }
-    /// - map: MAP_DELIMITER + key_1 + MAP_KEY_DELIMITER + value_1 + MAP_VALUE_DELIMITER + key_2 + MAP_KEY_DELIMITER + value_2 + MAP_VALUE_DELIMITER + ... + MAP_DELIMITER
+    /// - map: MAP_DELIMITER + MAP_KEY_DELIMITER + key_1 + MAP_KEY_DELIMITER + MAP_VALUE_DELIMITER + value_1 + MAP_VALUE_DELIMITER + ... + MAP_DELIMITER
     fn deserialize_map<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
@@ -612,15 +576,8 @@ impl<'de, 'a> MapAccess<'de> for MinimalMapDeserializer<'a, 'de> {
         if self.deserializer.peek_byte()? == &MAP_DELIMITER {
             return Ok(None);
         }
-        // if not first and not at the end of map; eat MAP_KEY_DELIMITER
-        if !self.first && self.deserializer.eat_byte()? != MAP_VALUE_SEPARATOR {
-            return Err(Error::ExpectedMapValueSeparator);
-        }
         // make not first; deserialize next key_1
         self.first = false;
-        if self.deserializer.parse_unsigned::<u8>()? != MAP_KEY_DELIMITER {
-            return Err(Error::ExpectedMapKeyDelimiter);
-        }
         let value = seed.deserialize(&mut *self.deserializer).map(Some)?;
         if self.deserializer.parse_unsigned::<u8>()? != MAP_KEY_DELIMITER {
             return Err(Error::ExpectedMapKeyDelimiter);
@@ -632,10 +589,6 @@ impl<'de, 'a> MapAccess<'de> for MinimalMapDeserializer<'a, 'de> {
     where
         V: serde::de::DeserializeSeed<'de>,
     {
-        // remove the last MAP_VALUE_DELIMITER and deserialize the value
-        if self.deserializer.eat_byte()? != MAP_VALUE_DELIMITER {
-            return Err(Error::ExpectedMapValueDelimiter);
-        }
         let value = seed.deserialize(&mut *self.deserializer)?;
         if self.deserializer.eat_byte()? != MAP_VALUE_DELIMITER {
             return Err(Error::ExpectedMapValueDelimiter);
