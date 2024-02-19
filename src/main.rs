@@ -41,6 +41,9 @@ fn main() -> Result<(), Error> {
             let mut map = std::collections::HashMap::new();
             map.insert("one".to_string(), 1);
             map.insert("two".to_string(), 2);
+            for i in 3..=100 {
+                map.insert(i.to_string(), i);
+            }
             map
         },
         field1: SomeEnum::A { a: 1, b: 2 },
@@ -55,6 +58,17 @@ fn main() -> Result<(), Error> {
     println!(
         "Serialized Bytes (hex):\n{}\n",
         bytes.iter().fold(String::new(), |mut output, b| {
+            let _ = write!(output, "{b:02X}");
+            output
+        })
+    );
+
+    // Serialize with serde_json to Bytes
+    let serde_bytes = serde_json::to_vec(&person).unwrap();
+    println!("Serialized Length (serde_json):\n{}\n", serde_bytes.len());
+    println!(
+        "Serialized Bytes (hex) (serde_json):\n{}\n",
+        serde_bytes.iter().fold(String::new(), |mut output, b| {
             let _ = write!(output, "{b:02X}");
             output
         })
