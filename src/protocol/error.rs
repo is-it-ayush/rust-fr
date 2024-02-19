@@ -46,7 +46,7 @@ pub enum Error {
     ExpectedMapDelimiter,
     #[error("expected map key delimiter")]
     ExpectedMapKeyDelimiter,
-        #[error("expected map value separator")]
+    #[error("expected map value separator")]
     ExpectedMapValueSeparator,
     #[error("expected map value delimiter")]
     ExpectedMapValueDelimiter,
