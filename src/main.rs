@@ -1,5 +1,6 @@
 use protocol::error::Error;
 use serde::{Deserialize, Serialize};
+use std::fmt::Write;
 
 mod protocol;
 
@@ -53,10 +54,10 @@ fn main() -> Result<(), Error> {
     println!("Serialized Length:\n{}\n", bytes.len());
     println!(
         "Serialized Bytes (hex):\n{}\n",
-        bytes
-            .iter()
-            .map(|b| format!("{:x} ", b))
-            .collect::<String>()
+        bytes.iter().fold(String::new(), |mut output, b| {
+            let _ = write!(output, "{b:02X}");
+            output
+        })
     );
 
     // Deserialize

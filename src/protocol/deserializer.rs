@@ -191,7 +191,7 @@ impl<'de> CustomDeserializer<'de> {
             }
             bytes.push(byte);
         }
-        Ok(String::from_utf8(bytes.clone()).map_err(|_| Error::ConversionError)?)
+        String::from_utf8(bytes.clone()).map_err(|_| Error::ConversionError)
     }
 
     /// Parses a byte buffer from the input.
@@ -210,7 +210,7 @@ impl<'de> CustomDeserializer<'de> {
 impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     type Error = Error;
 
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
@@ -374,7 +374,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     /// - unit_struct: unit()
     fn deserialize_unit_struct<V>(
         self,
-        name: &'static str,
+        _name: &'static str,
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where
@@ -385,7 +385,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     /// - newtype_struct: self
     fn deserialize_newtype_struct<V>(
         self,
-        name: &'static str,
+        _name: &'static str,
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where
@@ -396,8 +396,8 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     /// - tuple_struct: seq()
     fn deserialize_tuple_struct<V>(
         self,
-        name: &'static str,
-        len: usize,
+        _name: &'static str,
+        _len: usize,
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where
@@ -413,8 +413,8 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     /// - struct_variant: ENUM_DELIMITER + variant_index + struct()
     fn deserialize_enum<V>(
         self,
-        name: &'static str,
-        variants: &'static [&'static str],
+        _name: &'static str,
+        _variants: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where
@@ -456,13 +456,13 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
                 }
                 Ok(value)
             }
-            e => Err(Error::ExpectedMapDelimiter),
+            _e => Err(Error::ExpectedMapDelimiter),
         }
     }
 
     /// Tuple & Struct Deserialization.
     /// - tuple: seq()
-    fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_tuple<V>(self, _len: usize, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
@@ -471,8 +471,8 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     /// - struct: map()
     fn deserialize_struct<V>(
         self,
-        name: &'static str,
-        fields: &'static [&'static str],
+        _name: &'static str,
+        _fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value, Self::Error>
     where
@@ -488,7 +488,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
         self.deserialize_str(visitor)
     }
 
-    fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_ignored_any<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
@@ -531,7 +531,7 @@ impl<'de, 'a> VariantAccess<'de> for &'a mut CustomDeserializer<'de> {
     }
 
     /// - tuple_variant: ENUM_DELIMITER + variant_index + tuple() => seq()
-    fn tuple_variant<V>(self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
+    fn tuple_variant<V>(self, _len: usize, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
@@ -560,7 +560,7 @@ struct MinimalSequenceDeserializer<'a, 'de: 'a> {
 impl<'a, 'de> MinimalSequenceDeserializer<'a, 'de> {
     pub fn new(deserializer: &'a mut CustomDeserializer<'de>) -> Self {
         Self {
-            deserializer: deserializer,
+            deserializer,
             first: true,
         }
     }
@@ -596,7 +596,7 @@ struct MinimalMapDeserializer<'a, 'de: 'a> {
 impl<'a, 'de> MinimalMapDeserializer<'a, 'de> {
     pub fn new(deserializer: &'a mut CustomDeserializer<'de>) -> Self {
         Self {
-            deserializer: deserializer,
+            deserializer,
             first: true,
         }
     }

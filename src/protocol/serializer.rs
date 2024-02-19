@@ -87,11 +87,6 @@ impl CustomSerializer {
         }
         Ok(&self.data[len - n..])
     }
-
-    pub fn peek_nth_byte(&self, n: usize) -> Result<&u8, Error> {
-        let nth_bytes = self.peek_bytes(n)?;
-        Ok(&nth_bytes[0])
-    }
 }
 
 impl<'a> Serializer for &'a mut CustomSerializer {
@@ -199,13 +194,13 @@ impl<'a> Serializer for &'a mut CustomSerializer {
 
     /// structs:
     /// unit_struct: unit()
-    fn serialize_unit_struct(self, name: &'static str) -> Result<Self::Ok, Self::Error> {
+    fn serialize_unit_struct(self, _name: &'static str) -> Result<Self::Ok, Self::Error> {
         self.serialize_unit()
     }
     /// newtype_struct: self
     fn serialize_newtype_struct<T: ?Sized>(
         self,
-        name: &'static str,
+        _name: &'static str,
         value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
@@ -216,7 +211,7 @@ impl<'a> Serializer for &'a mut CustomSerializer {
     /// tuple_struct: tuple()
     fn serialize_tuple_struct(
         self,
-        name: &'static str,
+        _name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleStruct, Self::Error> {
         self.serialize_tuple(len)
@@ -226,9 +221,9 @@ impl<'a> Serializer for &'a mut CustomSerializer {
     /// unit_variant: ENUM_DELIMITER variant_index
     fn serialize_unit_variant(
         self,
-        name: &'static str,
+        _name: &'static str,
         variant_index: u32,
-        variant: &'static str,
+        _variant: &'static str,
     ) -> Result<Self::Ok, Self::Error> {
         self.serialize_u8(ENUM_DELIMITER)?;
         self.serialize_u32(variant_index)
@@ -236,9 +231,9 @@ impl<'a> Serializer for &'a mut CustomSerializer {
     /// newtype_variant: ENUM_DELIMITER variant_index self
     fn serialize_newtype_variant<T: ?Sized>(
         self,
-        name: &'static str,
+        _name: &'static str,
         variant_index: u32,
-        variant: &'static str,
+        _variant: &'static str,
         value: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
@@ -251,9 +246,9 @@ impl<'a> Serializer for &'a mut CustomSerializer {
     /// tuple_variant: ENUM_DELIMITER variant_index tuple()
     fn serialize_tuple_variant(
         self,
-        name: &'static str,
+        _name: &'static str,
         variant_index: u32,
-        variant: &'static str,
+        _variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleVariant, Self::Error> {
         self.serialize_u8(ENUM_DELIMITER)?;
@@ -263,9 +258,9 @@ impl<'a> Serializer for &'a mut CustomSerializer {
     /// struct_variant: ENUM_DELIMITER variant_index struct()
     fn serialize_struct_variant(
         self,
-        name: &'static str,
+        _name: &'static str,
         variant_index: u32,
-        variant: &'static str,
+        _variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStructVariant, Self::Error> {
         self.serialize_u8(ENUM_DELIMITER)?;
@@ -274,12 +269,12 @@ impl<'a> Serializer for &'a mut CustomSerializer {
     }
 
     /// sequences: SEQ_DELIMITER value_1 SEQ_VALUE_DELIMITER value_2 SEQ_VALUE_DELIMITER ... SEQ_DELIMITER
-    fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
+    fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
         self.serialize_u8(SEQ_DELIMITER)?;
         Ok(self)
     }
     /// maps: MAP_DELIMITER key_1 MAP_KEY_DELIMITER value_1 MAP_VALUE_DELIMITER key_2 MAP_KEY_DELIMITER value_2 MAP_VALUE_DELIMITER ... MAP_DELIMITER
-    fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
+    fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
         self.serialize_u8(MAP_DELIMITER)?;
         Ok(self)
     }
@@ -291,7 +286,7 @@ impl<'a> Serializer for &'a mut CustomSerializer {
     /// structs: map()
     fn serialize_struct(
         self,
-        name: &'static str,
+        _name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStruct, Self::Error> {
         self.serialize_map(Some(len))
