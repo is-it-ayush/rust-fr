@@ -17,6 +17,7 @@ name: check
 jobs:
   miri:
     runs-on: ubuntu-latest
+    name: stable / miri
     steps:
       - uses: actions/checkout@v4
         with:
