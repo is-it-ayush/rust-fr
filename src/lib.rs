@@ -55,7 +55,8 @@ mod tests {
         struct Human {
             name: String,
             age: u8,
-        };
+        }
+
         let human = Human {
             name: "Ayush".to_string(),
             age: 19,
