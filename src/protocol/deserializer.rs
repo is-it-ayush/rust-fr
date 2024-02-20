@@ -375,7 +375,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     {
         match self.parse_unsigned::<u8>()? {
             SEQ_DELIMITER => {
-                let value = visitor.visit_seq(MinimalSequenceDeserializer::new(self))?;
+                let value = visitor.visit_seq(SequenceDeserializer::new(self))?;
                 if self.parse_unsigned::<u8>()? != SEQ_DELIMITER {
                     return Err(Error::ExpectedSeqDelimiter);
                 }
@@ -389,7 +389,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        let value = visitor.visit_map(MinimalMapDeserializer::new(self))?;
+        let value = visitor.visit_map(MapDeserializer::new(self))?;
         if self.parse_unsigned::<u8>()? != MAP_DELIMITER {
             return Err(Error::ExpectedMapDelimiter);
         }
@@ -489,11 +489,11 @@ impl<'de, 'a> VariantAccess<'de> for &'a mut CustomDeserializer<'de> {
 
 /// Sequence Deserialization: seq()
 ///     - SEQ_DELIMITER + value_1 + SEQ_VALUE_DELIMITER + value_2 + SEQ_VALUE_DELIMITER + ... + SEQ_DELIMITER
-struct MinimalSequenceDeserializer<'a, 'de: 'a> {
+struct SequenceDeserializer<'a, 'de: 'a> {
     deserializer: &'a mut CustomDeserializer<'de>,
     first: bool,
 }
-impl<'a, 'de> MinimalSequenceDeserializer<'a, 'de> {
+impl<'a, 'de> SequenceDeserializer<'a, 'de> {
     pub fn new(deserializer: &'a mut CustomDeserializer<'de>) -> Self {
         Self {
             deserializer,
@@ -501,7 +501,7 @@ impl<'a, 'de> MinimalSequenceDeserializer<'a, 'de> {
         }
     }
 }
-impl<'de, 'a> SeqAccess<'de> for MinimalSequenceDeserializer<'a, 'de> {
+impl<'de, 'a> SeqAccess<'de> for SequenceDeserializer<'a, 'de> {
     type Error = Error;
 
     // value_1 + SEQ_VALUE_DELIMITER + value_2 + SEQ_VALUE_DELIMITER + ... + SEQ_DELIMITER
@@ -525,11 +525,11 @@ impl<'de, 'a> SeqAccess<'de> for MinimalSequenceDeserializer<'a, 'de> {
 
 /// Map Deserialization: map()
 ///     - key_1 + MAP_KEY_DELIMITER + value_1 + MAP_VALUE_DELIMITER + key_2 + MAP_KEY_DELIMITER + value_2 + MAP_VALUE_DELIMITER + ... + MAP_DELIMITER
-struct MinimalMapDeserializer<'a, 'de: 'a> {
+struct MapDeserializer<'a, 'de: 'a> {
     deserializer: &'a mut CustomDeserializer<'de>,
     first: bool,
 }
-impl<'a, 'de> MinimalMapDeserializer<'a, 'de> {
+impl<'a, 'de> MapDeserializer<'a, 'de> {
     pub fn new(deserializer: &'a mut CustomDeserializer<'de>) -> Self {
         Self {
             deserializer,
@@ -537,7 +537,7 @@ impl<'a, 'de> MinimalMapDeserializer<'a, 'de> {
         }
     }
 }
-impl<'de, 'a> MapAccess<'de> for MinimalMapDeserializer<'a, 'de> {
+impl<'de, 'a> MapAccess<'de> for MapDeserializer<'a, 'de> {
     type Error = Error;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>

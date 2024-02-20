@@ -6,16 +6,17 @@ use serde::{
     Serialize, Serializer,
 };
 
+
 use super::error::Error;
 
-pub const STRING_DELIMITER: u8 = 0x22; // " (double quote)
-pub const BYTE_DELIMITER: u8 = 0x23; // # (hash)
-pub const UNIT: u8 = 0x05; // ENQ (enquiry)
-pub const SEQ_DELIMITER: u8 = 0x26; // & (ampersand)
-pub const SEQ_VALUE_DELIMITER: u8 = 0x2E; // . (period)
-pub const MAP_DELIMITER: u8 = 0x3A; // : (colon)
-pub const MAP_KEY_DELIMITER: u8 = 0x3B; // ; (semicolon)
-pub const MAP_VALUE_DELIMITER: u8 = 0x3C; // < (less than)
+pub const STRING_DELIMITER: u8 = 0x01;
+pub const BYTE_DELIMITER: u8 = 0x02;
+pub const UNIT: u8 = 0x03;
+pub const SEQ_DELIMITER: u8 = 0x04;
+pub const SEQ_VALUE_DELIMITER: u8 = 0x05;
+pub const MAP_DELIMITER: u8 = 0x06;
+pub const MAP_KEY_DELIMITER: u8 = 0x07;
+pub const MAP_VALUE_DELIMITER: u8 = 0x08;
 
 #[derive(Debug)]
 struct CustomSerializer {
