@@ -1,8 +1,7 @@
 ### rust-fr
 
-'rust-fr' aka 'rust for real' is a simple data-interchange format that is better than `serde_json`
-but not as awesome as other compact binary formats like [ciborium](https://github.com/enarx/ciborium)
-& [msgpack-rust](https://github.com/3Hren/msgpack-rust).
+'rust-fr' aka 'rust for real' is a simple data-interchange format that is better than [serde_json](https://github.com/serde-rs/json)
+but not as awesome & compact as other binary formats like [ciborium](https://github.com/enarx/ciborium) & [msgpack-rust](https://github.com/3Hren/msgpack-rust).
 
 ### installation
 
