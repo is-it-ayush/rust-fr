@@ -162,7 +162,7 @@ impl<'de> CustomDeserializer<'de> {
     pub fn parse_bytes(&mut self, bytes: &mut Vec<u8>) -> Result<(), Error> {
         loop {
             let byte = self.eat_byte()?;
-            if byte == STRING_DELIMITER {
+            if byte == BYTE_DELIMITER {
                 break;
             }
             bytes.push(byte);
@@ -255,59 +255,39 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
         visitor.visit_char(self.parse_char()?)
     }
 
-    /// String Deserialization. They are serialized as STRING_DELIMITER + bytes + STRING_DELIMITER.
+    /// String Deserialization. They are serialized as bytes + STRING_DELIMITER.
     fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
-        match self.parse_unsigned::<u8>()? {
-            STRING_DELIMITER => {
-                let mut bytes = Vec::new();
-                visitor.visit_str(self.parse_str(&mut bytes)?.as_str())
-            }
-            _ => Err(Error::ExpectedStringDelimiter),
-        }
+        let mut bytes = Vec::new();
+        visitor.visit_str(self.parse_str(&mut bytes)?.as_str())
     }
     fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
-        match self.parse_unsigned::<u8>()? {
-            STRING_DELIMITER => {
-                let mut bytes = Vec::new();
-                visitor.visit_string(self.parse_str(&mut bytes)?.to_string())
-            }
-            _ => Err(Error::ExpectedStringDelimiter),
-        }
+        let mut bytes = Vec::new();
+        visitor.visit_string(self.parse_str(&mut bytes)?.to_string())
     }
 
-    /// Byte Deserialization. They are serialized as BYTE_DELIMITER + bytes + BYTE_DELIMITER.
+    /// Byte Deserialization. They are serialized as bytes + BYTE_DELIMITER.
     fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
-        match self.parse_unsigned::<u8>()? {
-            BYTE_DELIMITER => {
-                let mut bytes = Vec::new();
-                self.parse_bytes(&mut bytes)?;
-                visitor.visit_bytes(&bytes)
-            }
-            _ => Err(Error::ExpectedByteDelimiter),
-        }
+        let mut bytes = Vec::new();
+        self.parse_bytes(&mut bytes)?;
+        visitor.visit_bytes(&bytes)
     }
 
     fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
     {
-        match self.parse_unsigned::<u8>()? {
-            BYTE_DELIMITER => {
-                let mut bytes = Vec::new();
-                self.parse_bytes(&mut bytes)?;
-                visitor.visit_byte_buf(bytes)
-            }
-            _ => Err(Error::ExpectedByteDelimiter),
-        }
+        let mut bytes = Vec::new();
+        self.parse_bytes(&mut bytes)?;
+        visitor.visit_byte_buf(bytes)
     }
 
     /// Option Deserialization. They are serialized as None -> unit(), Some -> self.
@@ -404,7 +384,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
             _ => Err(Error::ExpectedSeqDelimiter),
         }
     }
-    /// - map: MAP_DELIMITER + MAP_KEY_DELIMITER + key_1 + MAP_KEY_DELIMITER + MAP_VALUE_DELIMITER + value_1 + MAP_VALUE_DELIMITER + ... + MAP_DELIMITER
+    /// - map: key_1 + MAP_KEY_DELIMITER + value_1 + MAP_VALUE_DELIMITER + ... + MAP_DELIMITER
     fn deserialize_map<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
@@ -544,7 +524,7 @@ impl<'de, 'a> SeqAccess<'de> for MinimalSequenceDeserializer<'a, 'de> {
 }
 
 /// Map Deserialization: map()
-///     - MAP_DELIMITER + key_1 + MAP_KEY_DELIMITER + value_1 + MAP_VALUE_DELIMITER + key_2 + MAP_KEY_DELIMITER + value_2 + MAP_VALUE_DELIMITER + ... + MAP_DELIMITER
+///     - key_1 + MAP_KEY_DELIMITER + value_1 + MAP_VALUE_DELIMITER + key_2 + MAP_KEY_DELIMITER + value_2 + MAP_VALUE_DELIMITER + ... + MAP_DELIMITER
 struct MinimalMapDeserializer<'a, 'de: 'a> {
     deserializer: &'a mut CustomDeserializer<'de>,
     first: bool,

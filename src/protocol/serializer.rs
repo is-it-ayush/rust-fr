@@ -114,16 +114,14 @@ impl<'a> Serializer for &'a mut CustomSerializer {
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
         self.serialize_u32(u32::from(v))
     }
-    /// str: STRING_DELIMITER bytes STRING_DELIMITER
+    /// str: bytes STRING_DELIMITER
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u8(STRING_DELIMITER)?;
         self.data.extend(v.as_bytes());
         self.serialize_u8(STRING_DELIMITER)?;
         Ok(())
     }
-    /// bytes: BYTE_DELIMITER bytes BYTE_DELIMITER
+    /// bytes: bytes BYTE_DELIMITER
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
-        self.serialize_u8(BYTE_DELIMITER)?;
         self.data.extend(v);
         self.serialize_u8(BYTE_DELIMITER)?;
         Ok(())
@@ -219,12 +217,12 @@ impl<'a> Serializer for &'a mut CustomSerializer {
         self.serialize_map(Some(len))
     }
 
-    /// sequences: SEQ_DELIMITER value_1 SEQ_VALUE_DELIMITER value_2 SEQ_VALUE_DELIMITER ... SEQ_DELIMITER
+    /// sequences: SEQ_DELIMITER + value_1 + SEQ_VALUE_DELIMITER + value_2 + SEQ_VALUE_DELIMITER + ... SEQ_DELIMITER
     fn serialize_seq(self, _len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
         self.serialize_u8(SEQ_DELIMITER)?;
         Ok(self)
     }
-    /// maps: MAP_DELIMITER key_1 MAP_KEY_DELIMITER value_1 MAP_VALUE_DELIMITER key_2 MAP_KEY_DELIMITER value_2 MAP_VALUE_DELIMITER ... MAP_DELIMITER
+    /// maps: key_1 + MAP_KEY_DELIMITER + value_1 + MAP_VALUE_DELIMITER + key_2 + MAP_KEY_DELIMITER + value_2 + MAP_VALUE_DELIMITER +... MAP_DELIMITER
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
         Ok(self)
     }
@@ -310,7 +308,7 @@ impl<'a> SerializeStruct for &'a mut CustomSerializer {
     type Ok = ();
     type Error = Error;
 
-    // MAP_DELIMITER + MAP_KEY_DELIMITER + key + MAP_KEY_DELIMITER + MAP_VALUE_DELIMITER + value + MAP_VALUE_DELIMITER + ... + MAP_DELIMITER
+    // key + MAP_KEY_DELIMITER + value + MAP_VALUE_DELIMITER + ... + MAP_DELIMITER
     fn serialize_field<T: ?Sized>(
         &mut self,
         key: &'static str,

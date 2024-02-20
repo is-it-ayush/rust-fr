@@ -10,8 +10,8 @@
 
 #### Need delimiters here because if I encode length then I'd waste 64 bit space. : )
 - String, Bytes, Unit, Option are serialized as:
-    - str: STRING_DELIMITER + bytes + STRING_DELIMITER
-    - bytes: BYTE_DELIMITER + bytes + BYTE_DELIMITER
+    - str: bytes + STRING_DELIMITER
+    - bytes: bytes + BYTE_DELIMITER
     - unit: UNIT (null)
     - option: None -> unit(), Some -> self
 
@@ -30,8 +30,7 @@
     - SEQ_DELIMITER + value_1 + SEQ_VALUE_DELIMITER + value_2 + SEQ_VALUE_DELIMITER + ... + SEQ_DELIMITER
 
 - Maps are serialized as:
-    - MAP_DELIMITER +
-        key_1 + MAP_KEY_DELIMITER +
+    -   key_1 + MAP_KEY_DELIMITER +
         value_1 + MAP_VALUE_DELIMITER +
         key_2 + MAP_KEY_DELIMITER +
         value_2 + MAP_VALUE_DELIMITER +
