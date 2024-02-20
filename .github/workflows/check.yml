@@ -15,6 +15,36 @@ concurrency:
   cancel-in-progress: true
 name: check
 jobs:
+  miri:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - run: |
+          echo "NIGHTLY=nightly-$(curl -s https://rust-lang.github.io/rustup-components-history/x86_64-unknown-linux-gnu/miri)" >> $GITHUB_ENV
+      - name: Install ${{ env.NIGHTLY }}
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.NIGHTLY }}
+          components: miri
+      - name: cargo miri test
+        run: cargo miri test
+        env:
+          MIRIFLAGS: ""
+  build:
+    runs-on: ubuntu-latest
+    name: stable / build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Install stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: cargo build
+        run: cargo test
   test:
     runs-on: ubuntu-latest
     name: stable / test
