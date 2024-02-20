@@ -1,8 +1,18 @@
 ### rust-fr
 
-'rust-fr' aka 'rust for real' is a toy implementation of a data-interchange format that is better than
-json but not as awesome as other compact binary formats like [ciborium](https://github.com/enarx/ciborium)
-& [msgpack-rust](https://github.com/3Hren/msgpack-rust).
+'rust-fr' aka 'rust for real' is a simple data-interchange format that is better than [serde_json](https://github.com/serde-rs/json)
+but not as awesome & compact as other binary formats like [ciborium](https://github.com/enarx/ciborium) & [msgpack-rust](https://github.com/3Hren/msgpack-rust).
+
+### installation
+
+You can use either of these methods.
+
+- Add via `cargo add rust-fr`
+- Add via `Cargo.toml`
+```.toml
+[dependencies]
+rust-fr = "0.1.0"
+```
 
 ### usage.
 
