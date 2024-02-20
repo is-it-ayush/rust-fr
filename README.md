@@ -31,11 +31,12 @@ assert_eq!(human, deserialized_human);
 
 ### why?
 
-The aim was education. I wrote this so I can learn how serde internally works
+The aim was to learn. I wrote this so I can learn how serde internally works
 and how to encode data into bytes that can ultimately be transferred over the wire
 or elsewhere.
 
 ### format specification.
+- The format is not self-describing.
 - Primitive types are serialized as is.
     - bool: 0 -> false, 1 -> true (1 byte)
     - i8, i16, i32, i64: as is.

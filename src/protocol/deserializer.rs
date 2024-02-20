@@ -11,11 +11,17 @@ use super::{
     },
 };
 
+/// Internal struct that handles the deserialization of the data.
+/// It has a few methods that allows us to peek and eat bytes from the data.
+/// It also has methods to parse some data into the required type.
 #[derive(Debug)]
 struct CustomDeserializer<'de> {
     data: &'de [u8],
 }
 
+/// The main function to deserialize bytes to a type. It makes assumptions
+/// on the bytes based on the specification and the type provided. In order to deserialize from bytes to
+/// a custom type, the type must implement the Deserialize trait from the serde library.
 pub fn from_bytes<'de, T>(bytes: &'de [u8]) -> Result<T, Error>
 where
     T: Deserialize<'de>,
@@ -174,6 +180,7 @@ impl<'de> CustomDeserializer<'de> {
 impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     type Error = Error;
 
+    /// The data is not self-describing, so we need to use the type to determine how to deserialize it.
     fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
@@ -181,7 +188,8 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
         Err(Error::UnsupportedCall("deserialize_any".to_string()))
     }
 
-    /// Primitve Types Deserialization. They are serialized as is (LE byte order).
+    // Primitve Types Deserialization. They are serialized as is (LE byte order).
+
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
@@ -434,8 +442,8 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     }
 }
 
-/// Enum Deserialization
-/// variant_index + (depends on variant type; handled by VARIANT_ACCESS)
+/// Handles the deserialization of an enum.
+/// enum() => variant_index + (depends on variant type; handled by VARIANT_ACCESS)
 impl<'de, 'a> EnumAccess<'de> for &'a mut CustomDeserializer<'de> {
     type Error = Error;
     type Variant = Self;
@@ -445,7 +453,6 @@ impl<'de, 'a> EnumAccess<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::DeserializeSeed<'de>,
     {
-        // variant_index + (depends on variant type; handled by variant_access)
         let key = self.parse_unsigned::<u32>()?;
         Ok((seed.deserialize(key.into_deserializer())?, self))
     }
@@ -466,7 +473,7 @@ impl<'de, 'a> VariantAccess<'de> for &'a mut CustomDeserializer<'de> {
         seed.deserialize(self)
     }
 
-    /// - tuple_variant: variant_index + tuple() => seq()
+    /// - tuple_variant: variant_index + tuple() where (tuple() => seq())
     fn tuple_variant<V>(self, _len: usize, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::Visitor<'de>,
@@ -474,7 +481,7 @@ impl<'de, 'a> VariantAccess<'de> for &'a mut CustomDeserializer<'de> {
         self.deserialize_seq(visitor)
     }
 
-    /// - struct_variant: variant_index + struct()
+    /// - struct_variant: variant_index + struct() where (struct() => map())
     fn struct_variant<V>(
         self,
         fields: &'static [&'static str],
@@ -487,8 +494,8 @@ impl<'de, 'a> VariantAccess<'de> for &'a mut CustomDeserializer<'de> {
     }
 }
 
-/// Sequence Deserialization: seq()
-///     - SEQ_DELIMITER + value_1 + SEQ_VALUE_DELIMITER + value_2 + SEQ_VALUE_DELIMITER + ... + SEQ_DELIMITER
+/// Internal struct that handles the deserialization of a sequence.
+/// seq() => SEQ_DELIMITER + value_1 + SEQ_VALUE_DELIMITER + value_2 + SEQ_VALUE_DELIMITER + ... + SEQ_DELIMITER
 struct SequenceDeserializer<'a, 'de: 'a> {
     deserializer: &'a mut CustomDeserializer<'de>,
     first: bool,
@@ -504,7 +511,10 @@ impl<'a, 'de> SequenceDeserializer<'a, 'de> {
 impl<'de, 'a> SeqAccess<'de> for SequenceDeserializer<'a, 'de> {
     type Error = Error;
 
-    // value_1 + SEQ_VALUE_DELIMITER + value_2 + SEQ_VALUE_DELIMITER + ... + SEQ_DELIMITER
+    /// Grab the next element from the data and remove it.
+    /// - If at end of sequence; exit.
+    /// - If not first and not at the end of sequence; eat SEQ_VALUE_DELIMITER.
+    /// - Make not first; deserialize next element.
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
     where
         T: serde::de::DeserializeSeed<'de>,
@@ -523,8 +533,8 @@ impl<'de, 'a> SeqAccess<'de> for SequenceDeserializer<'a, 'de> {
     }
 }
 
-/// Map Deserialization: map()
-///     - key_1 + MAP_KEY_DELIMITER + value_1 + MAP_VALUE_DELIMITER + key_2 + MAP_KEY_DELIMITER + value_2 + MAP_VALUE_DELIMITER + ... + MAP_DELIMITER
+/// Internal struct that handles the deserialization of a map.
+/// map() => key_1 + MAP_KEY_DELIMITER + value_1 + MAP_VALUE_DELIMITER + ... + MAP_DELIMITER
 struct MapDeserializer<'a, 'de: 'a> {
     deserializer: &'a mut CustomDeserializer<'de>,
     first: bool,
@@ -540,6 +550,11 @@ impl<'a, 'de> MapDeserializer<'a, 'de> {
 impl<'de, 'a> MapAccess<'de> for MapDeserializer<'a, 'de> {
     type Error = Error;
 
+    /// Grab the next key from the data and remove it.
+    /// - If at end of map; exit.
+    /// - Make not first; deserialize next key_1.
+    /// - Deserialize next value.
+    /// - Eat MAP_KEY_DELIMITER.
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
     where
         K: serde::de::DeserializeSeed<'de>,
@@ -557,6 +572,10 @@ impl<'de, 'a> MapAccess<'de> for MapDeserializer<'a, 'de> {
         Ok(value)
     }
 
+    /// Grab the next value from the data and remove it.
+    /// - Deserialize next value.
+    /// - Eat MAP_VALUE_DELIMITER.
+    /// - Return value.
     fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::DeserializeSeed<'de>,

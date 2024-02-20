@@ -1,5 +1,3 @@
 extern crate rust_fr;
 
-fn main() {
-}
-
+fn main() {}

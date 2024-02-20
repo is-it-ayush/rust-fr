@@ -6,9 +6,10 @@ use serde::{
     Serialize, Serializer,
 };
 
-
 use super::error::Error;
 
+/// The following constants are used to serialize the data in a specific format.
+/// Their exact values are not important, but they should be unique and not conflict with the data.
 pub const STRING_DELIMITER: u8 = 0x01;
 pub const BYTE_DELIMITER: u8 = 0x02;
 pub const UNIT: u8 = 0x03;
@@ -18,11 +19,16 @@ pub const MAP_DELIMITER: u8 = 0x06;
 pub const MAP_KEY_DELIMITER: u8 = 0x07;
 pub const MAP_VALUE_DELIMITER: u8 = 0x08;
 
+/// Internal struct that handles the serialization of the data.
+/// It has a few methods that lets us peeking bytes in the data.
 #[derive(Debug)]
 struct CustomSerializer {
     data: Vec<u8>,
 }
 
+/// The main function to serialize data of a given type to a byte vector i.e. Vec<u8>. It
+/// uses the format specification to serialize the data. In order to serialize a custom type,
+/// the type must implement the Serialize trait from the serde library.
 pub fn to_bytes<T: Serialize>(value: &T) -> Result<Vec<u8>, Error> {
     let mut serializer = CustomSerializer { data: Vec::new() };
     value.serialize(&mut serializer)?;
@@ -246,6 +252,7 @@ impl<'a> SerializeSeq for &'a mut CustomSerializer {
     type Ok = ();
     type Error = Error;
 
+    /// Serialize an element of the sequence.
     fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
     where
         T: Serialize,
@@ -264,6 +271,7 @@ impl<'a> SerializeMap for &'a mut CustomSerializer {
     type Ok = ();
     type Error = Error;
 
+    /// Serialize a key of a given element of the map.
     fn serialize_key<T: ?Sized>(&mut self, key: &T) -> Result<(), Self::Error>
     where
         T: Serialize,
@@ -272,6 +280,7 @@ impl<'a> SerializeMap for &'a mut CustomSerializer {
         self.serialize_u8(MAP_KEY_DELIMITER)
     }
 
+    /// Serialize a value of a given element of the map.
     fn serialize_value<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
     where
         T: Serialize,
@@ -280,6 +289,7 @@ impl<'a> SerializeMap for &'a mut CustomSerializer {
         self.serialize_u8(MAP_VALUE_DELIMITER)
     }
 
+    /// End the map serialization.
     fn end(self) -> Result<Self::Ok, Self::Error> {
         self.serialize_u8(MAP_DELIMITER)
     }
@@ -290,6 +300,7 @@ impl<'a> SerializeTuple for &'a mut CustomSerializer {
     type Ok = ();
     type Error = Error;
 
+    /// Serialize an element of the tuple.
     fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
     where
         T: Serialize,
@@ -300,6 +311,7 @@ impl<'a> SerializeTuple for &'a mut CustomSerializer {
         value.serialize(&mut **self)
     }
 
+    /// End the tuple serialization.
     fn end(self) -> Result<Self::Ok, Self::Error> {
         self.serialize_u8(SEQ_DELIMITER)
     }
@@ -309,7 +321,8 @@ impl<'a> SerializeStruct for &'a mut CustomSerializer {
     type Ok = ();
     type Error = Error;
 
-    // key + MAP_KEY_DELIMITER + value + MAP_VALUE_DELIMITER + ... + MAP_DELIMITER
+    /// Serialize a field of the struct. Structs treated as a key-value pair i.e. a map.
+    /// There is no difference between a struct and a map in the serialization format.
     fn serialize_field<T: ?Sized>(
         &mut self,
         key: &'static str,
@@ -324,6 +337,7 @@ impl<'a> SerializeStruct for &'a mut CustomSerializer {
         self.serialize_u8(MAP_VALUE_DELIMITER)
     }
 
+    /// End the struct serialization.
     fn end(self) -> Result<Self::Ok, Self::Error> {
         self.serialize_u8(MAP_DELIMITER)
     }
@@ -334,6 +348,8 @@ impl<'a> SerializeTupleStruct for &'a mut CustomSerializer {
     type Ok = ();
     type Error = Error;
 
+    /// Serialize an element of the tuple. Tuple structs treated as a sequence.
+    /// There is no difference between a tuple struct and a sequence in the serialization format.
     fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
     where
         T: Serialize,
@@ -344,6 +360,7 @@ impl<'a> SerializeTupleStruct for &'a mut CustomSerializer {
         value.serialize(&mut **self)
     }
 
+    /// End the tuple struct serialization.
     fn end(self) -> Result<Self::Ok, Self::Error> {
         self.serialize_u8(SEQ_DELIMITER)
     }
@@ -354,6 +371,8 @@ impl<'a> SerializeTupleVariant for &'a mut CustomSerializer {
     type Ok = ();
     type Error = Error;
 
+    /// Serialize an element of the tuple in an enum variant. Tuple variants treated as a sequence.
+    /// There is no difference between a tuple variant and a sequence in the serialization format.
     fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
     where
         T: Serialize,
@@ -364,6 +383,7 @@ impl<'a> SerializeTupleVariant for &'a mut CustomSerializer {
         value.serialize(&mut **self)
     }
 
+    /// End the tuple variant serialization.
     fn end(self) -> Result<Self::Ok, Self::Error> {
         self.serialize_u8(SEQ_DELIMITER)
     }
@@ -374,6 +394,8 @@ impl<'a> SerializeStructVariant for &'a mut CustomSerializer {
     type Ok = ();
     type Error = Error;
 
+    /// Serialize a field of the struct in an enum variant. Struct variants treated as a key-value pair i.e. a map.
+    /// There is no difference between a struct variant and a map in the serialization format.
     fn serialize_field<T: ?Sized>(
         &mut self,
         key: &'static str,
@@ -388,6 +410,7 @@ impl<'a> SerializeStructVariant for &'a mut CustomSerializer {
         self.serialize_u8(MAP_VALUE_DELIMITER)
     }
 
+    /// End the struct variant serialization.
     fn end(self) -> Result<Self::Ok, Self::Error> {
         self.serialize_u8(MAP_DELIMITER)
     }
