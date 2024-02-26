@@ -9,9 +9,6 @@ use serde::{
 
 use super::error::Error;
 
-/// The following constants are used to serialize the data in a specific format.
-/// Their exact values are not important, but they should be unique and not conflict with the data.
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Delimiter {
     /// STRING_DELIMITER: 0b10000110
@@ -24,8 +21,8 @@ pub enum Delimiter {
     Seq = 3,
     /// SEQ_VALUE_DELIMITER: 0b100
     SeqValue = 4,
-    /// MAP_DELIMITER: 0b101
-    Map = 5,
+    /// MAP_DELIMITER: 0b10001011
+    Map = 139,
     /// MAP_KEY_DELIMITER: 0b110
     MapKey = 6,
     /// MAP_VALUE_DELIMITER: 0b111
@@ -67,7 +64,6 @@ pub fn to_bytes<T: Serialize>(value: &T) -> Result<Vec<u8>, Error> {
 
 impl CustomSerializer {
     /// Get 'n' bits from end of the data.
-    /// Example: If the data is 0b10101010 and n is 3, the result will be 0b010.
     fn _peek_n_bits(&self, size: usize) -> Result<&BitSlice<u8>, Error> {
         let len = self.data.len();
         if size > len {
@@ -81,6 +77,7 @@ impl CustomSerializer {
         let bits = match token {
             Delimiter::String => self._peek_n_bits(8)?,
             Delimiter::Byte => self._peek_n_bits(8)?,
+            Delimiter::Map => self._peek_n_bits(8)?,
             _ => self._peek_n_bits(3)?,
         };
         let mut byte = 0u8;
@@ -127,7 +124,9 @@ impl CustomSerializer {
                 self.data.extend(&[false, false, true]); // 100
             }
             Delimiter::Map => {
-                self.data.extend(&[true, false, true]); // 101
+                self.data
+                    .extend(&[true, true, false, true, false, false, false, true]);
+                // 10001011
             }
             Delimiter::MapKey => {
                 self.data.extend(&[false, true, true]); // 110
@@ -211,14 +210,12 @@ impl<'a> Serializer for &'a mut CustomSerializer {
     }
     /// str: STRING_DELIMITER bytes STRING_DELIMITER
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
-        self.serialize_token(Delimiter::String);
         self.data.extend(v.as_bytes());
         self.serialize_token(Delimiter::String);
         Ok(())
     }
     /// bytes: BYTE_DELIMITER bytes BYTE_DELIMITER
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
-        self.serialize_token(Delimiter::Byte);
         self.data.extend(v);
         self.serialize_token(Delimiter::Byte);
         Ok(())

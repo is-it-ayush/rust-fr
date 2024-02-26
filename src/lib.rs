@@ -115,6 +115,7 @@ mod tests {
         o: HashMap<String, u8>,
         p: Option<u8>,
         q: Option<String>,
+        r: [u8; 3],
     }
 
     #[test]
@@ -140,6 +141,7 @@ mod tests {
                 .collect(),
             p: Some(1),
             q: None,
+            r: [1, 2, 3],
         };
 
         // Serialize

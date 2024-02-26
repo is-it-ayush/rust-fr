@@ -56,6 +56,7 @@ impl<'de> CustomDeserializer<'de> {
         let bits = match token {
             Delimiter::String => self._peek_n_bits(8)?,
             Delimiter::Byte => self._peek_n_bits(8)?,
+            Delimiter::Map => self._peek_n_bits(8)?,
             _ => self._peek_n_bits(3)?,
         };
         let mut byte = 0u8;
@@ -107,6 +108,7 @@ impl<'de> CustomDeserializer<'de> {
         let bits_to_munch = match token {
             Delimiter::String => 8,
             Delimiter::Byte => 8,
+            Delimiter::Map => 8,
             _ => 3,
         };
         if self.data.len() < bits_to_munch {
@@ -336,10 +338,6 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        if !self.peek_token(Delimiter::String)? {
-            return Err(Error::ExpectedDelimiter(Delimiter::String));
-        }
-        self.eat_token(Delimiter::String)?;
         let mut bytes = Vec::new();
         visitor.visit_str(self.parse_str(&mut bytes)?.as_str())
     }
@@ -347,10 +345,6 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        if !self.peek_token(Delimiter::String)? {
-            return Err(Error::ExpectedDelimiter(Delimiter::String));
-        }
-        self.eat_token(Delimiter::String)?;
         let mut bytes = Vec::new();
         visitor.visit_string(self.parse_str(&mut bytes)?.to_string())
     }
@@ -360,10 +354,6 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        if !self.peek_token(Delimiter::Byte)? {
-            return Err(Error::ExpectedDelimiter(Delimiter::Byte));
-        }
-        self.eat_token(Delimiter::Byte)?;
         let mut bytes = Vec::new();
         self.parse_bytes(&mut bytes)?;
         visitor.visit_bytes(&bytes)
@@ -648,17 +638,23 @@ impl<'de, 'a> MapAccess<'de> for MapDeserializer<'a, 'de> {
     where
         K: serde::de::DeserializeSeed<'de>,
     {
+        println!("map(): key--start");
         // if at end of map; exit
         if self.deserializer.peek_token(Delimiter::Map)? {
+            println!("map(): exit");
             return Ok(None);
         }
+        println!("map(): key--loop");
         // make not first; deserialize next key_1
         self.first = false;
         let value = seed.deserialize(&mut *self.deserializer).map(Some)?;
+        println!("map(): deserialied_key");
         if !self.deserializer.peek_token(Delimiter::MapKey)? {
             return Err(Error::ExpectedDelimiter(Delimiter::MapKey));
         }
+        println!("map(): eating key delimiter");
         self.deserializer.eat_token(Delimiter::MapKey)?;
+        println!("map(): key--end");
         Ok(value)
     }
 
@@ -670,11 +666,16 @@ impl<'de, 'a> MapAccess<'de> for MapDeserializer<'a, 'de> {
     where
         V: serde::de::DeserializeSeed<'de>,
     {
+        println!("map(): value--start");
+        println!("peeking_map_value");
         let value = seed.deserialize(&mut *self.deserializer)?;
+        println!("map(): deserialied_value");
         if !self.deserializer.peek_token(Delimiter::MapValue)? {
             return Err(Error::ExpectedDelimiter(Delimiter::MapValue));
         }
+        println!("map(): eating value delimiter");
         self.deserializer.eat_token(Delimiter::MapValue)?;
+        println!("map(): value--end");
         Ok(value)
     }
 }
