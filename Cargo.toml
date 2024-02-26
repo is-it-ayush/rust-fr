@@ -17,4 +17,10 @@ path = "src/lib.rs"
 
 [dependencies]
 thiserror = "1.0"
+bitvec = "1.0.1"
 serde = { version = "1", features = ["derive"] }
+
+
+[dev-dependencies]
+rmp-serde = "1.1.2"
+ciborium = "0.2.2"
