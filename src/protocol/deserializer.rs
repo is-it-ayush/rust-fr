@@ -336,6 +336,10 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
+        if !self.peek_token(Delimiter::String)? {
+            return Err(Error::ExpectedDelimiter(Delimiter::String));
+        }
+        self.eat_token(Delimiter::String)?;
         let mut bytes = Vec::new();
         visitor.visit_str(self.parse_str(&mut bytes)?.as_str())
     }
@@ -343,6 +347,10 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
+        if !self.peek_token(Delimiter::String)? {
+            return Err(Error::ExpectedDelimiter(Delimiter::String));
+        }
+        self.eat_token(Delimiter::String)?;
         let mut bytes = Vec::new();
         visitor.visit_string(self.parse_str(&mut bytes)?.to_string())
     }
@@ -352,6 +360,10 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
+        if !self.peek_token(Delimiter::Byte)? {
+            return Err(Error::ExpectedDelimiter(Delimiter::Byte));
+        }
+        self.eat_token(Delimiter::Byte)?;
         let mut bytes = Vec::new();
         self.parse_bytes(&mut bytes)?;
         visitor.visit_bytes(&bytes)
@@ -598,10 +610,12 @@ impl<'de, 'a> SeqAccess<'de> for SequenceDeserializer<'a, 'de> {
             return Ok(None);
         }
         // if not first and not at the end of sequence; eat SEQ_VALUE_DELIMITER
-        if !self.first && !self.deserializer.peek_token(Delimiter::SeqValue)? {
-            return Err(Error::ExpectedDelimiter(Delimiter::SeqValue));
+        if !self.first {
+            if !self.deserializer.peek_token(Delimiter::SeqValue)? {
+                return Err(Error::ExpectedDelimiter(Delimiter::SeqValue));
+            }
+            self.deserializer.eat_token(Delimiter::SeqValue)?;
         }
-        self.deserializer.eat_token(Delimiter::SeqValue)?;
         // make not first; deserialize next element
         self.first = false;
         seed.deserialize(&mut *self.deserializer).map(Some)
@@ -634,12 +648,10 @@ impl<'de, 'a> MapAccess<'de> for MapDeserializer<'a, 'de> {
     where
         K: serde::de::DeserializeSeed<'de>,
     {
-        println!("map(): next_key_seed: start");
         // if at end of map; exit
         if self.deserializer.peek_token(Delimiter::Map)? {
             return Ok(None);
         }
-        println!("peeking map key");
         // make not first; deserialize next key_1
         self.first = false;
         let value = seed.deserialize(&mut *self.deserializer).map(Some)?;
@@ -647,7 +659,6 @@ impl<'de, 'a> MapAccess<'de> for MapDeserializer<'a, 'de> {
             return Err(Error::ExpectedDelimiter(Delimiter::MapKey));
         }
         self.deserializer.eat_token(Delimiter::MapKey)?;
-        println!("map(): next_key_seed: end");
         Ok(value)
     }
 
