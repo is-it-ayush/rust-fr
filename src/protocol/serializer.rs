@@ -208,13 +208,13 @@ impl<'a> Serializer for &'a mut CustomSerializer {
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
         self.serialize_u32(u32::from(v))
     }
-    /// str: STRING_DELIMITER bytes STRING_DELIMITER
+    /// str: bytes STRING_DELIMITER
     fn serialize_str(self, v: &str) -> Result<Self::Ok, Self::Error> {
         self.data.extend(v.as_bytes());
         self.serialize_token(Delimiter::String);
         Ok(())
     }
-    /// bytes: BYTE_DELIMITER bytes BYTE_DELIMITER
+    /// bytes: bytes BYTE_DELIMITER
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
         self.data.extend(v);
         self.serialize_token(Delimiter::Byte);

@@ -3,7 +3,6 @@ pub mod protocol;
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-
     use crate::protocol;
     use serde::{Deserialize, Serialize};
 
