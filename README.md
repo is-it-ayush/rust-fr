@@ -17,7 +17,7 @@ rust-fr = "0.1"
 
 ```rs
 use serde::{Serialize, Deserialize};
-use rust_fr::protocol;
+use rust_fr::{serializer, deserializer};
 
 // define some data
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -31,10 +31,10 @@ let human = Human {
 };
 
 // serialize the data to bytes (Vec<u8>)
-let human_bytes = protocol::serializer::to_bytes(&human).unwrap();
+let human_bytes = serializer::to_bytes(&human).unwrap();
 
 // deserialize the data from serialized bytes.
-let deserialized_human = protocol::deserializer::from_bytes::<Human>(&human_bytes).unwrap();
+let deserialized_human = deserializer::from_bytes::<Human>(&human_bytes).unwrap();
 
 assert_eq!(human, deserialized_human);
 ```

@@ -1,10 +1,12 @@
-pub mod protocol;
+pub mod error;
+pub mod serializer;
+pub mod deserializer;
 
 #[cfg(test)]
 mod tests {
-    use crate::protocol;
     use serde::{Deserialize, Serialize};
     use std::collections::HashMap;
+    use crate::{serializer, deserializer};
 
     #[derive(Debug, Serialize, Deserialize, PartialEq)]
     struct Primitives {
@@ -42,11 +44,10 @@ mod tests {
         };
 
         // Serialize
-        let bytes = protocol::serializer::to_bytes(&primitives).unwrap();
+        let bytes = serializer::to_bytes(&primitives).unwrap();
 
         // Deserialize
-        let deserialized_primitives =
-            protocol::deserializer::from_bytes::<Primitives>(&bytes).unwrap();
+        let deserialized_primitives = deserializer::from_bytes::<Primitives>(&bytes).unwrap();
         assert_eq!(primitives, deserialized_primitives);
     }
 
@@ -87,11 +88,11 @@ mod tests {
         };
 
         // Serialize
-        let bytes = protocol::serializer::to_bytes(&compound_types).unwrap();
+        let bytes = serializer::to_bytes(&compound_types).unwrap();
 
         // Deserialize
         let deserialized_compound_types =
-            protocol::deserializer::from_bytes::<CompundTypes>(&bytes).unwrap();
+            deserializer::from_bytes::<CompundTypes>(&bytes).unwrap();
         assert_eq!(compound_types, deserialized_compound_types);
     }
 
@@ -144,10 +145,10 @@ mod tests {
         };
 
         // Serialize
-        let bytes = protocol::serializer::to_bytes(&random).unwrap();
+        let bytes = serializer::to_bytes(&random).unwrap();
 
         // Deserialize
-        let deserialized_random = protocol::deserializer::from_bytes::<Random>(&bytes).unwrap();
+        let deserialized_random = deserializer::from_bytes::<Random>(&bytes).unwrap();
         assert_eq!(random, deserialized_random);
     }
 
@@ -165,10 +166,10 @@ mod tests {
         };
 
         // serialize the data to bytes (Vec<u8>)
-        let human_bytes = protocol::serializer::to_bytes(&human).unwrap();
+        let human_bytes = serializer::to_bytes(&human).unwrap();
 
         // deserialize the data from serialized bytes.
-        let deserialized_human = protocol::deserializer::from_bytes::<Human>(&human_bytes).unwrap();
+        let deserialized_human = deserializer::from_bytes::<Human>(&human_bytes).unwrap();
 
         assert_eq!(human, deserialized_human);
     }
@@ -209,7 +210,7 @@ mod tests {
             }),
         };
 
-        let rust_fr_bytes = protocol::serializer::to_bytes(&data).unwrap();
+        let rust_fr_bytes = serializer::to_bytes(&data).unwrap();
         let serde_json_bytes = serde_json::to_vec(&data).unwrap();
         let rmp_serde_bytes = rmp_serde::to_vec(&data).unwrap();
         let mut cir_serde_bytes = Vec::new();
@@ -235,7 +236,7 @@ mod tests {
             up: None,
         };
 
-        let rust_fr_bytes = protocol::serializer::to_bytes(&data).unwrap();
+        let rust_fr_bytes = serializer::to_bytes(&data).unwrap();
         let serde_json_bytes = serde_json::to_vec(&data).unwrap();
         let rmp_serde_bytes = rmp_serde::to_vec(&data).unwrap();
         let mut cir_serde_bytes = Vec::new();
@@ -275,7 +276,7 @@ mod tests {
             }),
         };
 
-        let rust_fr_bytes = protocol::serializer::to_bytes(&data).unwrap();
+        let rust_fr_bytes = serializer::to_bytes(&data).unwrap();
         let serde_json_bytes = serde_json::to_vec(&data).unwrap();
         let rmp_serde_bytes = rmp_serde::to_vec(&data).unwrap();
         let mut cir_serde_bytes = Vec::new();
