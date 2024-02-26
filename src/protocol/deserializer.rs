@@ -634,10 +634,12 @@ impl<'de, 'a> MapAccess<'de> for MapDeserializer<'a, 'de> {
     where
         K: serde::de::DeserializeSeed<'de>,
     {
+        println!("map(): next_key_seed: start");
         // if at end of map; exit
         if self.deserializer.peek_token(Delimiter::Map)? {
             return Ok(None);
         }
+        println!("peeking map key");
         // make not first; deserialize next key_1
         self.first = false;
         let value = seed.deserialize(&mut *self.deserializer).map(Some)?;
@@ -645,6 +647,7 @@ impl<'de, 'a> MapAccess<'de> for MapDeserializer<'a, 'de> {
             return Err(Error::ExpectedDelimiter(Delimiter::MapKey));
         }
         self.deserializer.eat_token(Delimiter::MapKey)?;
+        println!("map(): next_key_seed: end");
         Ok(value)
     }
 

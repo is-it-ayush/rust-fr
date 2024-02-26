@@ -76,18 +76,6 @@ impl CustomSerializer {
         self.data.get(len - size..).ok_or(Error::NoByte)
     }
 
-    // Construct a byte from the last 8 bits of the data.
-    pub fn peek_byte(&self) -> Result<u8, Error> {
-        let bits = self._peek_n_bits(8)?;
-        let mut byte = 0u8;
-        for (i, bit) in bits.iter().enumerate() {
-            if *bit {
-                byte |= 1 << i;
-            }
-        }
-        Ok(byte)
-    }
-
     /// Construst a byte from the last 3 bits of the data.
     pub fn peek_token(&self, token: Delimiter) -> Result<bool, Error> {
         let bits = match token {
