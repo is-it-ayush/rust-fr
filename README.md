@@ -10,7 +10,7 @@ You can use either of these methods.
 - Add via `Cargo.toml`
 ```.toml
 [dependencies]
-rust-fr = "0.1"
+rust-fr = "1"
 ```
 
 ### usage.

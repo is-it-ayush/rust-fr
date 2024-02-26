@@ -1,8 +1,8 @@
 [package]
 name = "rust-fr"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
-description = "a toy data-interchange format"
+description = "a simple, non-self-describing data-interchange format."
 repository = "https://github.com/is-it-ayush/rust-fr"
 license-file = "LICENSE.md"
 readme = "README.md"
