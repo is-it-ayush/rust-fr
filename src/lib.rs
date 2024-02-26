@@ -171,4 +171,119 @@ mod tests {
 
         assert_eq!(human, deserialized_human);
     }
+
+    #[derive(Debug, Serialize, Deserialize, PartialEq)]
+    struct PlaygroundData {
+        never: HashMap<String, Vec<u8>>,
+        gonna: Vec<u8>,
+        give: Option<i32>,
+        you: bool,
+        up: Option<Primitives>,
+    }
+
+    #[test]
+    #[ignore = "playground test; use cargo test -- --nocapture --ignored"]
+    fn length_test_large_data() {
+        let data = PlaygroundData {
+            never: (0..1000)
+                .map(|i| (i.to_string(), vec![i as u8; 100]))
+                .collect(),
+            gonna: (0..1000).map(|i| i as u8).collect(),
+            give: Some(1),
+            you: true,
+            up: Some(Primitives {
+                a: 1,
+                b: 2,
+                c: 3,
+                d: 4,
+                e: -1,
+                f: -2,
+                g: -3,
+                h: -4,
+                i: 1.0,
+                j: 2.0,
+                k: true,
+                l: 'a',
+                m: "hello".to_string(),
+            }),
+        };
+
+        let rust_fr_bytes = protocol::serializer::to_bytes(&data).unwrap();
+        let serde_json_bytes = serde_json::to_vec(&data).unwrap();
+        let rmp_serde_bytes = rmp_serde::to_vec(&data).unwrap();
+        let mut cir_serde_bytes = Vec::new();
+        ciborium::ser::into_writer(&data, &mut cir_serde_bytes).unwrap();
+
+        println!("---- Large Data ----");
+        println!("rust_fr:\t{} bytes", rust_fr_bytes.len());
+        println!("serde_json:\t{} bytes", serde_json_bytes.len());
+        println!("rmp_serde:\t{} bytes", rmp_serde_bytes.len());
+        println!("ciborium:\t{} bytes", cir_serde_bytes.len());
+    }
+
+    #[test]
+    #[ignore = "playground test; use cargo test -- --nocapture --ignored"]
+    fn length_test_small_data() {
+        let data = PlaygroundData {
+            never: (0..10)
+                .map(|i| (i.to_string(), vec![i as u8; 10]))
+                .collect(),
+            gonna: (0..10).map(|i| i as u8).collect(),
+            give: Some(1),
+            you: false,
+            up: None,
+        };
+
+        let rust_fr_bytes = protocol::serializer::to_bytes(&data).unwrap();
+        let serde_json_bytes = serde_json::to_vec(&data).unwrap();
+        let rmp_serde_bytes = rmp_serde::to_vec(&data).unwrap();
+        let mut cir_serde_bytes = Vec::new();
+        ciborium::ser::into_writer(&data, &mut cir_serde_bytes).unwrap();
+
+        println!("---- Small Data ----");
+        println!("rust_fr:\t{} bytes", rust_fr_bytes.len());
+        println!("serde_json:\t{} bytes", serde_json_bytes.len());
+        println!("rmp_serde:\t{} bytes", rmp_serde_bytes.len());
+        println!("ciborium:\t{} bytes", cir_serde_bytes.len());
+    }
+
+    #[test]
+    #[ignore = "playground test; use cargo test -- --nocapture --ignored"]
+    fn length_test_medium_data() {
+        let data = PlaygroundData {
+            never: (0..100)
+                .map(|i| (i.to_string(), vec![i as u8; 100]))
+                .collect(),
+            gonna: (0..100).map(|i| i as u8).collect(),
+            give: Some(1),
+            you: true,
+            up: Some(Primitives {
+                a: 1,
+                b: 2,
+                c: 3,
+                d: 4,
+                e: -1,
+                f: -2,
+                g: -3,
+                h: -4,
+                i: 1.0,
+                j: 2.0,
+                k: true,
+                l: 'a',
+                m: "hello".to_string(),
+            }),
+        };
+
+        let rust_fr_bytes = protocol::serializer::to_bytes(&data).unwrap();
+        let serde_json_bytes = serde_json::to_vec(&data).unwrap();
+        let rmp_serde_bytes = rmp_serde::to_vec(&data).unwrap();
+        let mut cir_serde_bytes = Vec::new();
+        ciborium::ser::into_writer(&data, &mut cir_serde_bytes).unwrap();
+
+        println!("---- Medium Data ----");
+        println!("rust_fr:\t{} bytes", rust_fr_bytes.len());
+        println!("serde_json:\t{} bytes", serde_json_bytes.len());
+        println!("rmp_serde:\t{} bytes", rmp_serde_bytes.len());
+        println!("ciborium:\t{} bytes", cir_serde_bytes.len());
+    }
 }
