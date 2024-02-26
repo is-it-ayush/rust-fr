@@ -1,5 +1,14 @@
+//! ### Error
+//! A module for the error type used in the library. It is a simple enum with a variant for each
+//! error that can occur in the library. It uses `thiserror` internally.
+
+use super::serializer::Delimiter;
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    #[error("could not get the last bit from the data.")]
+    NoBit,
+
     #[error("could not get the last byte from the data.")]
     NoByte,
 
@@ -24,32 +33,8 @@ pub enum Error {
     #[error("type conversion error")]
     ConversionError,
 
-    #[error("expected string delimiter")]
-    ExpectedStringDelimiter,
-
-    #[error("expected byte delimiter")]
-    ExpectedByteDelimiter,
-
-    #[error("expected unit")]
-    ExpectedUnit,
-
-    #[error("expected enum delimiter")]
-    ExpectedEnumDelimiter,
-
-    #[error("expected seq delimiter")]
-    ExpectedSeqDelimiter,
-
-    #[error("expected seq value delimiter")]
-    ExpectedSeqValueDelimiter,
-
-    #[error("expected map delimiter")]
-    ExpectedMapDelimiter,
-    #[error("expected map key delimiter")]
-    ExpectedMapKeyDelimiter,
-    #[error("expected map value separator")]
-    ExpectedMapValueSeparator,
-    #[error("expected map value delimiter")]
-    ExpectedMapValueDelimiter,
+    #[error("expected delimiter {0}")]
+    ExpectedDelimiter(Delimiter),
 }
 
 impl serde::ser::Error for Error {
