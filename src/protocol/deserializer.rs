@@ -120,7 +120,7 @@ impl<'de> CustomDeserializer<'de> {
 
     /// Parses a boolean value from the input.
     pub fn parse_bool(&mut self) -> Result<bool, Error> {
-        Ok(self.eat_bit()?)
+        self.eat_bit()
     }
     /// Parses an unsigned integer value from the input.
     pub fn parse_unsigned<T>(&mut self) -> Result<T, Error>

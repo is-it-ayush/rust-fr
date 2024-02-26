@@ -105,7 +105,7 @@ impl CustomSerializer {
     }
 
     /// Serialize a token to the data.
-    pub fn serialize_token(&mut self, token: Delimiter) -> () {
+    pub fn serialize_token(&mut self, token: Delimiter) {
         match token {
             Delimiter::String => {
                 self.data
