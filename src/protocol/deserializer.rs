@@ -1,136 +1,60 @@
-//! ### Deserializer
-//! This module contains the deserialization logic for the library. It is used to deserialize
-//! bytes to a custom type.
-//!
-//! To use the deserializer, you need to call the [`from_bytes`] function which takes in
-//! the bytes and a type. The type must implement the `Deserialize` trait from the serde library.
-//! It returns a Result with the deserialized data or an error.
-
-use bitvec::{prelude as bv, slice::BitSlice, view::BitView};
 use serde::{
     de::{EnumAccess, IntoDeserializer, MapAccess, SeqAccess, VariantAccess},
     Deserialize, Deserializer,
 };
 
-use super::{error::Error, serializer::Delimiter};
+use super::{
+    error::Error,
+    serializer::{
+        BYTE_DELIMITER, MAP_DELIMITER, MAP_KEY_DELIMITER, MAP_VALUE_DELIMITER, SEQ_DELIMITER,
+        SEQ_VALUE_DELIMITER, STRING_DELIMITER, UNIT,
+    },
+};
 
-// Internal struct that handles the deserialization of the data.
-// It has a few methods that allows us to peek and eat bytes from the data.
-// It also has methods to parse some data into the required type.
+/// Internal struct that handles the deserialization of the data.
+/// It has a few methods that allows us to peek and eat bytes from the data.
+/// It also has methods to parse some data into the required type.
 #[derive(Debug)]
 struct CustomDeserializer<'de> {
-    data: &'de bv::BitSlice<u8, bv::Lsb0>,
+    data: &'de [u8],
 }
 
-/// The function to deserialize (serialized) bytes back into data. `T` must implement the `Deserialize` trait
-/// from the `serde` library. `bytes` is the data to be deserialized. It returns a Result with the deserialized
-/// data or an error.
+/// The main function to deserialize bytes to a type. It makes assumptions
+/// on the bytes based on the specification and the type provided. In order to deserialize from bytes to
+/// a custom type, the type must implement the Deserialize trait from the serde library.
 pub fn from_bytes<'de, T>(bytes: &'de [u8]) -> Result<T, Error>
 where
     T: Deserialize<'de>,
 {
-    let mut deserializer = CustomDeserializer {
-        data: bytes.view_bits(),
-    };
+    let mut deserializer = CustomDeserializer { data: bytes };
     let deserialized = T::deserialize(&mut deserializer)?;
     Ok(deserialized)
 }
 
 impl<'de> CustomDeserializer<'de> {
-    /// Get 'n' bits from end of the data.
-    /// Example: If the data is 0b10101010 and n is 3, the result will be 0b010.
-    fn _peek_n_bits(&self, size: usize) -> Result<&BitSlice<u8>, Error> {
-        let len = self.data.len();
-        if size > len {
-            return Err(Error::NLargerThanLength(size, self.data.len()));
-        }
-        self.data.get(..size).ok_or(Error::NoByte)
+    /// Get the last byte from the data.
+    pub fn peek_byte(&self) -> Result<&u8, Error> {
+        let data = self.data.first().ok_or(Error::NoByte)?;
+        Ok(data)
     }
-
-    /// Get the first byte from the data.
-    pub fn peek_byte(&self) -> Result<u8, Error> {
-        let bits = self._peek_n_bits(8)?;
-        let mut byte = 0u8;
-        for (i, bit) in bits.iter().enumerate() {
-            if *bit {
-                byte |= 1 << i;
-            }
-        }
-        Ok(byte)
-    }
-
-    /// Peek the next token from the data.
-    pub fn peek_token(&self, token: Delimiter) -> Result<bool, Error> {
-        let bits = match token {
-            Delimiter::String => self._peek_n_bits(8)?,
-            Delimiter::Byte => self._peek_n_bits(8)?,
-            Delimiter::Map => self._peek_n_bits(8)?,
-            _ => self._peek_n_bits(3)?,
-        };
-        let mut byte = 0u8;
-        for (i, bit) in bits.iter().enumerate() {
-            if *bit {
-                byte |= 1 << i;
-            }
-        }
-        if byte == token as u8 {
-            Ok(true)
-        } else {
-            Ok(false)
-        }
-    }
-
-    /// Grab the next bit from the data and remove it.
-    pub fn eat_bit(&mut self) -> Result<bool, Error> {
-        let bit = *self._peek_n_bits(1)?.get(0).ok_or(Error::NoBit)?;
-        self.data = &self.data[1..];
-        Ok(bit)
-    }
-
     /// Grab the next byte from the data and remove it.
     pub fn eat_byte(&mut self) -> Result<u8, Error> {
-        let byte = self.peek_byte()?;
-        self.data = &self.data[8..];
+        let byte = *self.peek_byte()?;
+        self.data = &self.data[1..];
         Ok(byte)
     }
-
     /// Grab the next 'n' bytes from the data and remove them.
-    pub fn eat_bytes(&mut self, n: usize) -> Result<Vec<u8>, Error> {
-        let bits = &self.data[..n * 8];
-        let mut bytes = Vec::new();
-        self.data = &self.data[n * 8..];
-        for i in 0..n {
-            let mut byte = 0u8;
-            for (j, bit) in bits[i * 8..(i + 1) * 8].iter().enumerate() {
-                if *bit {
-                    byte |= 1 << j;
-                }
-            }
-            bytes.push(byte);
-        }
+    pub fn eat_bytes(&mut self, n: usize) -> Result<&[u8], Error> {
+        let bytes = &self.data[..n];
+        self.data = &self.data[n..];
         Ok(bytes)
-    }
-
-    /// Grab the next token from the data and remove it.
-    pub fn eat_token(&mut self, token: Delimiter) -> Result<(), Error> {
-        let bits_to_munch = match token {
-            Delimiter::String => 8,
-            Delimiter::Byte => 8,
-            Delimiter::Map => 8,
-            _ => 3,
-        };
-        if self.data.len() < bits_to_munch {
-            return Err(Error::UnexpectedEOF);
-        }
-        self.data = &self.data[bits_to_munch..];
-        Ok(())
     }
 
     /// Parser Methods
 
     /// Parses a boolean value from the input.
     pub fn parse_bool(&mut self) -> Result<bool, Error> {
-        self.eat_bit()
+        Ok(self.eat_byte()? != 0)
     }
     /// Parses an unsigned integer value from the input.
     pub fn parse_unsigned<T>(&mut self) -> Result<T, Error>
@@ -230,13 +154,12 @@ impl<'de> CustomDeserializer<'de> {
 
     /// Parses a string value from the input.
     pub fn parse_str(&mut self, bytes: &mut Vec<u8>) -> Result<String, Error> {
-        'byteloop: loop {
+        loop {
             let byte = self.eat_byte()?;
-            bytes.push(byte);
-            if self.peek_token(Delimiter::String)? {
-                self.eat_token(Delimiter::String)?;
-                break 'byteloop;
+            if byte == STRING_DELIMITER {
+                break;
             }
+            bytes.push(byte);
         }
         String::from_utf8(bytes.clone()).map_err(|_| Error::ConversionError)
     }
@@ -244,11 +167,10 @@ impl<'de> CustomDeserializer<'de> {
     /// Parses a byte buffer from the input.
     pub fn parse_bytes(&mut self, bytes: &mut Vec<u8>) -> Result<(), Error> {
         loop {
-            if self.peek_token(Delimiter::Byte)? {
-                self.eat_token(Delimiter::Byte)?;
+            let byte = self.eat_byte()?;
+            if byte == BYTE_DELIMITER {
                 break;
             }
-            let byte = self.eat_byte()?;
             bytes.push(byte);
         }
         Ok(())
@@ -381,12 +303,12 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        match self.peek_token(Delimiter::Unit)? {
-            true => {
-                self.eat_token(Delimiter::Unit)?;
+        match self.peek_byte()? {
+            &UNIT => {
+                self.eat_byte()?;
                 visitor.visit_none()
             }
-            false => visitor.visit_some(self),
+            _ => visitor.visit_some(self),
         }
     }
     /// Unit Deserialization. They are serialized as UNIT.
@@ -394,12 +316,9 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        match self.peek_token(Delimiter::Unit)? {
-            true => {
-                self.eat_token(Delimiter::Unit)?;
-                visitor.visit_unit()
-            }
-            _ => Err(Error::ExpectedDelimiter(Delimiter::Unit)),
+        match self.parse_unsigned::<u8>()? {
+            UNIT => visitor.visit_unit(),
+            _ => Err(Error::ExpectedUnit),
         }
     }
 
@@ -462,17 +381,15 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        match self.peek_token(Delimiter::Seq)? {
-            true => {
-                self.eat_token(Delimiter::Seq)?;
+        match self.parse_unsigned::<u8>()? {
+            SEQ_DELIMITER => {
                 let value = visitor.visit_seq(SequenceDeserializer::new(self))?;
-                if !self.peek_token(Delimiter::Seq)? {
-                    return Err(Error::ExpectedDelimiter(Delimiter::Seq));
+                if self.parse_unsigned::<u8>()? != SEQ_DELIMITER {
+                    return Err(Error::ExpectedSeqDelimiter);
                 }
-                self.eat_token(Delimiter::Seq)?;
                 Ok(value)
             }
-            false => Err(Error::ExpectedDelimiter(Delimiter::Seq)),
+            _ => Err(Error::ExpectedSeqDelimiter),
         }
     }
     /// - map: key_1 + MAP_KEY_DELIMITER + value_1 + MAP_VALUE_DELIMITER + ... + MAP_DELIMITER
@@ -481,10 +398,9 @@ impl<'de, 'a> Deserializer<'de> for &'a mut CustomDeserializer<'de> {
         V: serde::de::Visitor<'de>,
     {
         let value = visitor.visit_map(MapDeserializer::new(self))?;
-        if !self.peek_token(Delimiter::Map)? {
-            return Err(Error::ExpectedDelimiter(Delimiter::Map));
+        if self.parse_unsigned::<u8>()? != MAP_DELIMITER {
+            return Err(Error::ExpectedMapDelimiter);
         }
-        self.eat_token(Delimiter::Map)?;
         Ok(value)
     }
 
@@ -604,15 +520,12 @@ impl<'de, 'a> SeqAccess<'de> for SequenceDeserializer<'a, 'de> {
         T: serde::de::DeserializeSeed<'de>,
     {
         // if at end of sequence; exit
-        if self.deserializer.peek_token(Delimiter::Seq)? {
+        if self.deserializer.peek_byte()? == &SEQ_DELIMITER {
             return Ok(None);
         }
         // if not first and not at the end of sequence; eat SEQ_VALUE_DELIMITER
-        if !self.first {
-            if !self.deserializer.peek_token(Delimiter::SeqValue)? {
-                return Err(Error::ExpectedDelimiter(Delimiter::SeqValue));
-            }
-            self.deserializer.eat_token(Delimiter::SeqValue)?;
+        if !self.first && self.deserializer.eat_byte()? != SEQ_VALUE_DELIMITER {
+            return Err(Error::ExpectedSeqValueDelimiter);
         }
         // make not first; deserialize next element
         self.first = false;
@@ -646,23 +559,16 @@ impl<'de, 'a> MapAccess<'de> for MapDeserializer<'a, 'de> {
     where
         K: serde::de::DeserializeSeed<'de>,
     {
-        println!("map(): key--start");
         // if at end of map; exit
-        if self.deserializer.peek_token(Delimiter::Map)? {
-            println!("map(): exit");
+        if self.deserializer.peek_byte()? == &MAP_DELIMITER {
             return Ok(None);
         }
-        println!("map(): key--loop");
         // make not first; deserialize next key_1
         self.first = false;
         let value = seed.deserialize(&mut *self.deserializer).map(Some)?;
-        println!("map(): deserialied_key");
-        if !self.deserializer.peek_token(Delimiter::MapKey)? {
-            return Err(Error::ExpectedDelimiter(Delimiter::MapKey));
+        if self.deserializer.parse_unsigned::<u8>()? != MAP_KEY_DELIMITER {
+            return Err(Error::ExpectedMapKeyDelimiter);
         }
-        println!("map(): eating key delimiter");
-        self.deserializer.eat_token(Delimiter::MapKey)?;
-        println!("map(): key--end");
         Ok(value)
     }
 
@@ -674,16 +580,10 @@ impl<'de, 'a> MapAccess<'de> for MapDeserializer<'a, 'de> {
     where
         V: serde::de::DeserializeSeed<'de>,
     {
-        println!("map(): value--start");
-        println!("peeking_map_value");
         let value = seed.deserialize(&mut *self.deserializer)?;
-        println!("map(): deserialied_value");
-        if !self.deserializer.peek_token(Delimiter::MapValue)? {
-            return Err(Error::ExpectedDelimiter(Delimiter::MapValue));
+        if self.deserializer.eat_byte()? != MAP_VALUE_DELIMITER {
+            return Err(Error::ExpectedMapValueDelimiter);
         }
-        println!("map(): eating value delimiter");
-        self.deserializer.eat_token(Delimiter::MapValue)?;
-        println!("map(): value--end");
         Ok(value)
     }
 }

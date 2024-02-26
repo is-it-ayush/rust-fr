@@ -1,6 +1,7 @@
 ### rust-fr
 
-'rust-fr' (aka `rust for real`) is a simple, non-self-describing data-interchange format.
+'rust-fr' aka 'rust for real' is a simple data-interchange format that is better than [serde_json](https://github.com/serde-rs/json)
+but not as awesome & compact as other binary formats like [ciborium](https://github.com/enarx/ciborium) & [msgpack-rust](https://github.com/3Hren/msgpack-rust).
 
 ### installation
 
@@ -10,14 +11,13 @@ You can use either of these methods.
 - Add via `Cargo.toml`
 ```.toml
 [dependencies]
-rust-fr = "0.1"
+rust-fr = "0.1.0"
 ```
 
 ### usage.
 
 ```rs
 use serde::{Serialize, Deserialize};
-use rust_fr::{serializer, deserializer};
 
 // define some data
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -31,49 +31,21 @@ let human = Human {
 };
 
 // serialize the data to bytes (Vec<u8>)
-let human_bytes = serializer::to_bytes(&human).unwrap();
+let human_bytes = rust_fr::protocol::serializer::to_bytes(&human).unwrap();
 
 // deserialize the data from serialized bytes.
-let deserialized_human = deserializer::from_bytes::<Human>(&human_bytes).unwrap();
+let deserialized_human = rust_fr::protocol::deserializer::from_bytes::<Human>(&human_bytes).unwrap();
 
 assert_eq!(human, deserialized_human);
 ```
 
-### benchmark.
-
-- Run `cargo test -- --nocapture --ignored` to run the benchmark tests.
-```sh
-running 3 tests
----- Small Data ----
-rust_fr:        218 bytes
-serde_json:     332 bytes
-rmp_serde:      146 bytes
-ciborium:       170 bytes
-test tests::length_test_small_data ... ok
----- Medium Data ----
-rust_fr:        14264 bytes
-serde_json:     30125 bytes
-rmp_serde:      10731 bytes
-ciborium:       18347 bytes
-test tests::length_test_medium_data ... ok
----- Large Data ----
-rust_fr:        139214 bytes
-serde_json:     367595 bytes
-rmp_serde:      157219 bytes
-ciborium:       198277 bytes
-test tests::length_test_large_data ... ok
-
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.01s
-```
-
 ### why?
 
-The goal was to learn/understand. I wrote this so I can learn how serde internally works
+The aim was to learn. I wrote this so I can learn how serde internally works
 and how to encode data into bytes that can ultimately be transferred over the wire
 or elsewhere.
 
 ### format specification.
-
 - The format is not self-describing.
 - Primitive types are serialized as is.
     - bool: 0 -> false, 1 -> true (1 byte)
@@ -81,17 +53,16 @@ or elsewhere.
     - u8, u16, u32, u64: as is.
     - f32, f64: as is.
     - char: as u32 (4 bytes)
-- Delimiters are used to separate different types of data.
-- String, Byte and Map Delimiters are 1 byte long while all other delimiters are 3 bits long.
-- Delimiters:
-    - String = 134; 0b10000110
-    - Byte = 135; 0b10000111
-    - Unit = 2; 0b010
-    - Seq = 3; 0b011
-    - SeqValue = 4; 0b100
-    - Map = 139; 0b10001011
-    - MapKey = 6; 0b110
-    - MapValue = 7; 0b111
+- Delimiters are all serailized as a u8 (1 byte)
+- Delimiters Used (the values themselves are arbitrary and could be swapped):
+    - STRING_DELIMITER: 0x01
+    - BYTE_DELIMITER: 0x02
+    - UNIT: 0x03
+    - SEQ_DELIMITER: 0x04
+    - SEQ_VALUE_DELIMITER: 0x05
+    - MAP_DELIMITER: 0x06
+    - MAP_KEY_DELIMITER: 0x07
+    - MAP_VALUE_DELIMITER: 0x08
 - String, Bytes, Unit, Option are serialized as:
     - str: bytes + STRING_DELIMITER
     - bytes: bytes + BYTE_DELIMITER
