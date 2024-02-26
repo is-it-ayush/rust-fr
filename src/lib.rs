@@ -2,9 +2,9 @@ pub mod protocol;
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use crate::protocol;
     use serde::{Deserialize, Serialize};
+    use std::collections::HashMap;
 
     #[derive(Debug, Serialize, Deserialize, PartialEq)]
     struct Primitives {
