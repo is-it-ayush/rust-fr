@@ -1,3 +1,7 @@
+//! ### Error
+//! A module for the error type used in the library. It is a simple enum with a variant for each
+//! error that can occur in the library. It uses `thiserror` internally.
+
 use super::serializer::Delimiter;
 
 #[derive(thiserror::Error, Debug)]
