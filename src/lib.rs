@@ -1,12 +1,12 @@
+pub mod deserializer;
 pub mod error;
 pub mod serializer;
-pub mod deserializer;
 
 #[cfg(test)]
 mod tests {
+    use crate::{deserializer, serializer};
     use serde::{Deserialize, Serialize};
     use std::collections::HashMap;
-    use crate::{serializer, deserializer};
 
     #[derive(Debug, Serialize, Deserialize, PartialEq)]
     struct Primitives {
@@ -91,8 +91,7 @@ mod tests {
         let bytes = serializer::to_bytes(&compound_types).unwrap();
 
         // Deserialize
-        let deserialized_compound_types =
-            deserializer::from_bytes::<CompundTypes>(&bytes).unwrap();
+        let deserialized_compound_types = deserializer::from_bytes::<CompundTypes>(&bytes).unwrap();
         assert_eq!(compound_types, deserialized_compound_types);
     }
 
