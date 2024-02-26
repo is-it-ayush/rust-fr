@@ -1,3 +1,9 @@
+//! ### Serializer
+//! The module that handles the serialization of the data.
+//!
+//! To use the serializer, call the [`to_bytes`] function with a reference to the data to be
+//! serialized. The data must implement the `Serialize` trait from the `serde` library.
+
 use bitvec::{prelude as bv, slice::BitSlice};
 use serde::{
     ser::{
@@ -9,23 +15,28 @@ use serde::{
 
 use super::error::Error;
 
+/// The delimiter used in the format specification. The purpose
+/// of delimiters is to separate different types of data such
+/// that they don't mangle. There are 8 different delimiters
+/// in the format specification out of which 3 (`String`, `Byte` & `Map`)
+/// are 1 byte long and 5 (the rest...) are 3 bits long.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Delimiter {
-    /// STRING_DELIMITER: 0b10000110
+    // 0b10000110
     String = 134,
-    /// BYTE_DELIMITER: 0b10000111
+    // 0b10000111
     Byte = 135,
-    /// UNIT: 0b010
+    // 0b010
     Unit = 2,
-    /// SEQ_DELIMITER: 0b011
+    // 0b011
     Seq = 3,
-    /// SEQ_VALUE_DELIMITER: 0b100
+    // 0b100
     SeqValue = 4,
-    /// MAP_DELIMITER: 0b10001011
+    // 0b10001011
     Map = 139,
-    /// MAP_KEY_DELIMITER: 0b110
+    // 0b110
     MapKey = 6,
-    /// MAP_VALUE_DELIMITER: 0b111
+    // 0b111
     MapValue = 7,
 }
 
@@ -44,16 +55,16 @@ impl std::fmt::Display for Delimiter {
     }
 }
 
-/// Internal struct that handles the serialization of the data.
-/// It has a few methods that lets us peeking bytes in the data.
+// Internal struct that handles the serialization of the data.
+// It has a few methods that lets us peeking bytes in the data.
 #[derive(Debug)]
 struct CustomSerializer {
     data: bv::BitVec<u8, bv::Lsb0>,
 }
 
-/// The main function to serialize data of a given type to a byte vector i.e. Vec<u8>. It
-/// uses the format specification to serialize the data. In order to serialize a custom type,
-/// the type must implement the Serialize trait from the serde library.
+/// The function to serialize data of a given type to a byte vector. The
+/// `value` must implement the `Serialize` trait from the `serde` library. It returns
+/// a Result with the serialized byte vector or an error.
 pub fn to_bytes<T: Serialize>(value: &T) -> Result<Vec<u8>, Error> {
     let mut serializer = CustomSerializer {
         data: bv::BitVec::new(),

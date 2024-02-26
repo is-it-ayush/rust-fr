@@ -1,3 +1,11 @@
+//! ### Deserializer
+//! This module contains the deserialization logic for the library. It is used to deserialize
+//! bytes to a custom type.
+//!
+//! To use the deserializer, you need to call the [`from_bytes`] function which takes in
+//! the bytes and a type. The type must implement the `Deserialize` trait from the serde library.
+//! It returns a Result with the deserialized data or an error.
+
 use bitvec::{prelude as bv, slice::BitSlice, view::BitView};
 use serde::{
     de::{EnumAccess, IntoDeserializer, MapAccess, SeqAccess, VariantAccess},
@@ -6,17 +14,17 @@ use serde::{
 
 use super::{error::Error, serializer::Delimiter};
 
-/// Internal struct that handles the deserialization of the data.
-/// It has a few methods that allows us to peek and eat bytes from the data.
-/// It also has methods to parse some data into the required type.
+// Internal struct that handles the deserialization of the data.
+// It has a few methods that allows us to peek and eat bytes from the data.
+// It also has methods to parse some data into the required type.
 #[derive(Debug)]
 struct CustomDeserializer<'de> {
     data: &'de bv::BitSlice<u8, bv::Lsb0>,
 }
 
-/// The main function to deserialize bytes to a type. It makes assumptions
-/// on the bytes based on the specification and the type provided. In order to deserialize from bytes to
-/// a custom type, the type must implement the Deserialize trait from the serde library.
+/// The function to deserialize (serialized) bytes back into data. `T` must implement the `Deserialize` trait
+/// from the `serde` library. `bytes` is the data to be deserialized. It returns a Result with the deserialized
+/// data or an error.
 pub fn from_bytes<'de, T>(bytes: &'de [u8]) -> Result<T, Error>
 where
     T: Deserialize<'de>,

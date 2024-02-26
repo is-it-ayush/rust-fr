@@ -1,3 +1,33 @@
+//! ### rust-fr
+//! A simple, non-self-describing data-interchange format. It exposes two modules, `serializer`
+//! and `deserializer`, for serializing and deserializing data which contain [`to_bytes`](serializer::to_bytes),
+//! [`from_bytes`](deserializer::from_bytes) functions which do exactly what their names suggest.
+//! - The data to be encoded & decoded must implement the `serde::Serialize` and `serde::Deserialize` traits.
+//!
+//! ### Example
+//! ```rust
+//! use rust_fr::{deserializer, serializer};
+//!
+//! #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq)]
+//! struct Human {
+//!    name: String,
+//!    age: u8,
+//! }
+//!
+//! let human = Human {
+//!    name: "Ayush".to_string(),
+//!    age: 19,
+//! };
+//!
+//! // serialize the data to bytes (Vec<u8>)
+//! let human_bytes = serializer::to_bytes(&human).unwrap();
+//!
+//! // deserialize the data from serialized bytes.
+//! let deserialized_human = deserializer::from_bytes::<Human>(&human_bytes).unwrap();
+//!
+//! assert_eq!(human, deserialized_human);
+//! ```
+
 pub mod deserializer;
 pub mod error;
 pub mod serializer;
