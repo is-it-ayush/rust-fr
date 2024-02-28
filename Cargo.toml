@@ -1,12 +1,12 @@
 [package]
 name = "rust-fr"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 description = "a simple, non-self-describing data-interchange format."
 repository = "https://github.com/is-it-ayush/rust-fr"
 license-file = "LICENSE.md"
 readme = "README.md"
-keywords = ["rust", "fr", "data-interchange", "format", "toy"]
+keywords = ["rust_fr", "encoding", "data-interchange", "format", "serde"]
 categories = ["encoding", "data-structures"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
