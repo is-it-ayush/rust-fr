@@ -1,6 +1,6 @@
 [package]
 name = "rust-fr"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 description = "a simple, non-self-describing data-interchange format."
 repository = "https://github.com/is-it-ayush/rust-fr"
