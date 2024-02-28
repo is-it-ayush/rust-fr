@@ -74,9 +74,9 @@ or elsewhere.
 
 ### format specification.
 
-- The format is not self-describing.
+- The format is non-self-describing.
 - Primitive types are serialized as is.
-    - bool: 0 -> false, 1 -> true (1 byte)
+    - bool: 0 -> false, 1 -> true (1 bit)
     - i8, i16, i32, i64: as is.
     - u8, u16, u32, u64: as is.
     - f32, f64: as is.
