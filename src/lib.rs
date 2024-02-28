@@ -88,6 +88,14 @@ mod tests {
         c: Option<u8>,
         d: Option<String>,
         e: Primitives,
+        f: Vec<AnEnum>,
+    }
+
+    #[derive(Debug, Serialize, Deserialize, PartialEq)]
+    enum AnEnum {
+        A(u8),
+        B { a: u8, b: u16 },
+        C,
     }
 
     #[test]
@@ -115,6 +123,7 @@ mod tests {
                 l: 'a',
                 m: "hello".to_string(),
             },
+            f: vec![AnEnum::A(1), AnEnum::B { a: 1, b: 2 }, AnEnum::C],
         };
 
         // Serialize
